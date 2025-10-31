@@ -545,7 +545,7 @@ Resultado: Y,Y (frictionless)
 
 ### **Mastercard** (Challenge - Con OTP):
 ```
-Número: 5200000000002235
+Número: 5200000000002151
 Expiración: 01/2028
 CVV: 123
 Tipo: mastercard
@@ -554,7 +554,7 @@ Resultado: Y,C (challenge requerido)
 
 ### **American Express** (Frictionless):
 ```
-Número: 378282246310005
+Número: 340000000002708
 Expiración: 01/2028
 CVV: 1234
 Tipo: american express
@@ -690,30 +690,18 @@ Busca en `storage/logs/laravel.log` por estos emojis:
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Puedes usarlo libremente en proyectos personales o comerciales.
+Este proyecto es **privado y propietario**. Todos los derechos reservados.
 
 ---
 
-## 👨‍💻 Créditos
+## 👨‍💻 Autor
 
-Desarrollado con ❤️ para la comunidad Laravel.
+**Miguel Segura Alvarado**
 
-Sistema de pagos profesional listo para producción.
+Sistema de pagos profesional desarrollado con CyberSource 3D Secure 2.2.0.
 
 ---
 
 **Versión:** 2.0.0  
 **Última Actualización:** 31 de Octubre de 2025  
 **Estado:** ✅ **PRODUCCIÓN READY**
-
----
-
-## ⭐ ¿Te fue útil?
-
-Si este proyecto te ayudó, considera:
-- Darle una estrella ⭐ en GitHub
-- Compartirlo con otros desarrolladores
-- Contribuir con mejoras vía Pull Requests
-- Reportar bugs para mejorar el código
-
-¡Gracias por usar esta pasarela de pagos! 🚀
