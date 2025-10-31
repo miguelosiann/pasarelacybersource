@@ -22,7 +22,8 @@ Route::get('/', function () {
 
 // ===== PAYMENT CHALLENGE CALLBACK (PÚBLICO - Sin autenticación) =====
 // Esta ruta NO requiere autenticación porque viene de un iframe externo de CardinalCommerce
-Route::post('/payment/challenge/callback', [CheckoutController::class, 'handleChallengeCallback'])->name('payment.challenge.callback');
+// ✅ CRÍTICO: Debe renderizar challenge-return.blade.php que envía postMessage (NO redirige)
+Route::post('/payment/challenge/callback', [ChallengeController::class, 'callback'])->name('payment.challenge.callback');
 
 // ===== PAYMENT GATEWAY ROUTES =====
 // Payment Routes (CyberSource)

@@ -88,11 +88,8 @@ class CheckoutController extends Controller
             
             // Store data in session for continuation
             session([
-                'payment_data' => array_merge($data, [
-                    'instrument_identifier_id' => $setupResult['instrument_id'] ?? null
-                ]),
+                'payment_data' => $data,
                 'payment_instrument_id' => $setupResult['payment_instrument_id'],
-                'instrument_identifier_id' => $setupResult['instrument_id'] ?? null,
                 'threeds_setup_data' => $threeDSSetupResult['data']
             ]);
             

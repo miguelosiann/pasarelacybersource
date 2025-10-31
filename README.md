@@ -21,9 +21,16 @@ Implementación completa de pasarela de pagos con **CyberSource 3D Secure 2.2.0*
 
 ### 1. **Configuración**
 
+⚠️ **CRÍTICO**: Lee `CONFIGURACION_CHALLENGE.md` antes de empezar. El flujo de challenge 3DS requiere configuración especial de sesión.
+
 Copia el archivo `.env.example` a `.env` y configura:
 
 ```env
+# ===== IMPORTANTE: Configuración de sesión para 3DS Challenge =====
+SESSION_SAME_SITE=null   # CRÍTICO para desarrollo local
+# Para producción con HTTPS usar: SESSION_SAME_SITE=none
+# ================================================================
+
 # CyberSource Configuration
 CYBERSOURCE_MERCHANT_ID=tu_merchant_id
 CYBERSOURCE_API_KEY=tu_api_key
@@ -42,9 +49,8 @@ CYBERSOURCE_3DS_VERSION=2.2.0
 # Captura automática
 CYBERSOURCE_CAPTURE_ON_AUTH=true
 
-# Logging
-CYBERSOURCE_LOG_REQUESTS=true
-CYBERSOURCE_LOG_RESPONSES=true
+# Monedas permitidas
+CYBERSOURCE_ALLOWED_CURRENCIES=USD,CRC
 ```
 
 ### 2. **Instalación**
@@ -247,8 +253,9 @@ Los campos de la base de datos usaban prefijo `threeds_*` (threeds_cavv, threeds
 
 ## 📚 Documentación Adicional
 
-- `CAMBIOS_APLICADOS.md` - Lista detallada de cambios realizados
-- `PRUEBAS.md` - Guía completa de pruebas
+- **`CONFIGURACION_CHALLENGE.md`** - ⚠️ **CRÍTICO**: Configuración necesaria para 3DS Challenge
+- `CAMBIOS_APLICADOS.md` - Lista detallada de cambios realizados (si existe)
+- `PRUEBAS.md` - Guía completa de pruebas (si existe)
 - Logs: `storage/logs/laravel.log`
 
 ---
