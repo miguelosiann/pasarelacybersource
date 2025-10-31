@@ -4,40 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Challenge Return</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-            background: #f8f9fa;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .success {
-            color: #28a745;
-        }
-        .error {
-            color: #dc3545;
-        }
-        .loading {
-            color: #007bff;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ asset('css/variables.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/payment-gateway.css') }}">
 </head>
-<body>
-    <div class="container">
+<body class="challenge-return-body">
+    <div class="challenge-return-container">
         @if($challengeSuccess)
-            <h2 class="success">✅ Challenge Completado</h2>
+            <h2 class="challenge-return-success">✅ Challenge Completado</h2>
             <p>Autenticación exitosa. Procesando autorización...</p>
-            <div class="loading">⏳ Por favor espera...</div>
+            <div class="challenge-return-loading">⏳ Por favor espera...</div>
         @else
-            <h2 class="error">❌ Challenge Fallido</h2>
+            <h2 class="challenge-return-error">❌ Challenge Fallido</h2>
             <p>Error en la autenticación.</p>
             @if(!empty($challengeData['error']))
                 <p><strong>Error:</strong> {{ $challengeData['error'] }}</p>

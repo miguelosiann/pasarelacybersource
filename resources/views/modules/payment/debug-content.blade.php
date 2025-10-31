@@ -274,7 +274,7 @@
                                 <iframe 
                                     id="challenge-iframe-debug" 
                                     name="challengeFrameDebug"
-                                    style="width: 100%; height: 500px; border: 2px solid #ffc107; border-radius: 8px;"
+                                    class="challenge-iframe"
                                     sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-modals allow-popups"
                                 ></iframe>
                             </div>
@@ -284,7 +284,7 @@
                         <form id="challenge-form-debug" 
                               method="POST" 
                               target="challengeFrameDebug"
-                              style="display: none;">
+                              class="payment-hidden">
                             <input type="hidden" name="JWT" id="challenge-jwt-debug">
                         </form>
                     </div>

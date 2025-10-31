@@ -17,90 +17,17 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
+    <!-- CSS Variables (Paleta de colores) -->
+    <link rel="stylesheet" href="{{ asset('css/variables.css') }}">
+
+    <!-- Payment Gateway CSS -->
+    <link rel="stylesheet" href="{{ asset('css/payment-gateway.css') }}">
+    
+    <!-- Template CSS -->
+    <link rel="stylesheet" href="{{ asset('css/template.css') }}">
+
     <!-- jQuery (necesario para algunos scripts) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <!-- Estilos personalizados -->
-    <style>
-        body {
-            font-family: 'Figtree', sans-serif;
-            background-color: #f8f9fa;
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        .navbar-brand {
-            color: white !important;
-            font-weight: 600;
-            font-size: 1.5rem;
-        }
-
-        .navbar-nav .nav-link {
-            color: rgba(255,255,255,0.9) !important;
-            margin: 0 10px;
-            transition: color 0.3s;
-        }
-
-        .navbar-nav .nav-link:hover {
-            color: white !important;
-        }
-
-        .content-wrapper {
-            padding: 30px 0;
-            min-height: calc(100vh - 200px);
-        }
-
-        .footer {
-            background: #2d3748;
-            color: white;
-            padding: 30px 0;
-            margin-top: 50px;
-        }
-
-        .footer a {
-            color: #667eea;
-            text-decoration: none;
-        }
-
-        .footer a:hover {
-            text-decoration: underline;
-        }
-
-        /* Loading spinner */
-        .spinner-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-
-        .spinner-overlay.active {
-            display: flex;
-        }
-
-        .spinner-border-custom {
-            width: 3rem;
-            height: 3rem;
-            border: 0.3rem solid #ffffff;
-            border-right-color: transparent;
-            border-radius: 50%;
-            animation: spinner-border 0.75s linear infinite;
-        }
-
-        @keyframes spinner-border {
-            to { transform: rotate(360deg); }
-        }
-    </style>
 
     <!-- Estilos adicionales de la página -->
     @yield('styles')

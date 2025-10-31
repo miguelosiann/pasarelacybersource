@@ -5,7 +5,7 @@
             <div class="card border-success">
                 <div class="card-body text-center py-5">
                     <div class="mb-4">
-                        <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+                        <i class="fas fa-check-circle text-success icon-xl"></i>
                     </div>
                     <h2 class="text-success mb-3">¡Pago Procesado Exitosamente!</h2>
                     <p class="lead text-muted mb-4">
@@ -143,7 +143,7 @@
             <div class="alert alert-light mt-4" role="alert">
                 <strong>Nota:</strong> Se ha enviado un comprobante de pago a su correo electrónico. 
                 Si tiene alguna pregunta, puede contactarnos a través de 
-                <a href="mailto:soporte@osiann.com">soporte técnico</a>.
+                <a href="mailto:soporte@tupasarela.com">soporte técnico</a>.
             </div>
         </div>
     </div>

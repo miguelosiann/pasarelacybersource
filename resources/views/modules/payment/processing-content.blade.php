@@ -43,13 +43,13 @@
                             <div class="row mb-2">
                                 <div class="col-md-3"><strong>Request:</strong></div>
                                 <div class="col-md-9">
-                                    <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ json_encode(json_decode($result['flow_results']['step1']['request_payload'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
+                                    <pre class="bg-light p-2 rounded code-block-scrollable"><code>{{ json_encode(json_decode($result['flow_results']['step1']['request_payload'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3"><strong>Response:</strong></div>
                                 <div class="col-md-9">
-                                    <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ json_encode(json_decode($result['flow_results']['step1']['response'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
+                                    <pre class="bg-light p-2 rounded code-block-scrollable"><code>{{ json_encode(json_decode($result['flow_results']['step1']['response'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -81,13 +81,13 @@
                             <div class="row mb-2">
                                 <div class="col-md-3"><strong>Request:</strong></div>
                                 <div class="col-md-9">
-                                    <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ json_encode(json_decode($result['flow_results']['step2']['request_payload'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
+                                    <pre class="bg-light p-2 rounded code-block-scrollable"><code>{{ json_encode(json_decode($result['flow_results']['step2']['request_payload'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3"><strong>Response:</strong></div>
                                 <div class="col-md-9">
-                                    <pre class="bg-light p-2 rounded" style="max-height: 200px; overflow-y: auto;"><code>{{ json_encode(json_decode($result['flow_results']['step2']['response'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
+                                    <pre class="bg-light p-2 rounded code-block-scrollable"><code>{{ json_encode(json_decode($result['flow_results']['step2']['response'] ?? '{}'), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</code></pre>
                                 </div>
                             </div>
                         </div>
@@ -99,7 +99,7 @@
             @else
                 <div class="card">
                     <div class="card-body text-center py-5">
-                        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <div class="spinner-border text-primary mb-3 spinner-lg" role="status">
                             <span class="visually-hidden">Procesando...</span>
                         </div>
                         <h4>Procesando su pago...</h4>

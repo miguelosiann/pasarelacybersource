@@ -5,7 +5,7 @@
             <div class="card border-danger">
                 <div class="card-body text-center py-5">
                     <div class="mb-4">
-                        <i class="fas fa-times-circle text-danger" style="font-size: 5rem;"></i>
+                        <i class="fas fa-times-circle text-danger icon-xl"></i>
                     </div>
                     <h2 class="text-danger mb-3">Pago No Procesado</h2>
                     <p class="lead text-muted mb-4">
@@ -66,7 +66,7 @@
 
                     <div class="row g-3 mt-2">
                         <div class="col-md-6">
-                            <a href="mailto:soporte@osiann.com" class="btn btn-outline-info w-100">
+                            <a href="mailto:soporte@tupasarela.com" class="btn btn-outline-info w-100">
                                 <i class="fas fa-life-ring me-2"></i>
                                 Contactar Soporte
                             </a>

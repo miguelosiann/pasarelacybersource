@@ -27,7 +27,7 @@
                         <iframe 
                             id="challenge-iframe" 
                             name="challengeFrame"
-                            style="width: 100%; height: 600px; border: 1px solid #dee2e6; border-radius: 8px;"
+                            class="challenge-iframe"
                             sandbox="allow-forms allow-scripts allow-same-origin allow-top-navigation allow-modals allow-popups"
                         ></iframe>
                     </div>
@@ -77,7 +77,7 @@
       action="{{ $challengeData['step_up_url'] ?? '' }}" 
       method="POST" 
       target="challengeFrame"
-      style="display: none;">
+      class="payment-hidden">
     @if(isset($challengeData['access_token']))
         <input type="hidden" name="JWT" value="{{ $challengeData['access_token'] }}">
     @endif

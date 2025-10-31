@@ -23,7 +23,7 @@
                             Este proceso toma solo unos segundos.
                         </p>
                         
-                        <div class="progress mt-4" style="height: 25px;">
+                        <div class="progress mt-4 payment-progress">
                             <div class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
                                  role="progressbar" 
                                  style="width: 0%" 
@@ -45,9 +45,7 @@
     <!-- Hidden iframe for device data collection -->
     <iframe id="cardinal_collection_iframe" 
             name="collectionIframe" 
-            height="1" 
-            width="1" 
-            style="display: none;">
+            class="device-collection-iframe">
     </iframe>
 
     <!-- Hidden form -->

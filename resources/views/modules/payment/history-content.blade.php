@@ -18,7 +18,7 @@
                 <div class="card-body">
                     @if($payments->isEmpty())
                         <div class="text-center py-5">
-                            <i class="fas fa-receipt text-muted" style="font-size: 3rem;"></i>
+                            <i class="fas fa-receipt text-muted icon-lg"></i>
                             <p class="text-muted mt-3">No hay pagos registrados</p>
                             <a href="{{ route('payment.checkout') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-2"></i>

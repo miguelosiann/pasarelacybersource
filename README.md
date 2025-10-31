@@ -606,12 +606,244 @@ php artisan migrate:status
 
 ---
 
-## 📚 Documentación Adicional
+## 🎨 Mantenimiento y Personalización CSS
 
-- **`CONFIGURACION_CHALLENGE.md`** - ⚠️ **CRÍTICO**: Configuración de sesión para 3DS Challenge
-- **Logs**: `storage/logs/laravel.log` - Todos los pasos del flujo están logueados con emojis
-- **CyberSource Docs**: [developer.cybersource.com](https://developer.cybersource.com)
-- **3D Secure Spec**: [EMVCo 3DS 2.2.0](https://www.emvco.com/emv-technologies/3d-secure/)
+Este proyecto utiliza una **arquitectura CSS modular y profesional** para facilitar el mantenimiento y personalización.
+
+### **Estructura de Archivos CSS**
+
+```
+public/css/
+├── payment-gateway.css    # Estilos específicos de la pasarela de pagos
+├── template.css           # Estilos del layout principal (navbar, footer)
+└── welcome.css           # Estilos de la página de bienvenida
+```
+
+### **1. `payment-gateway.css` - Estilos de la Pasarela**
+
+**Ubicación**: `public/css/payment-gateway.css`
+
+**Contiene**:
+- Estilos del callback 3DS (`challenge-return-*`)
+- Configuración de iframes (`challenge-iframe`, `device-collection-iframe`)
+- Tamaños de íconos (`icon-xl`, `icon-lg`, `icon-md`)
+- Code blocks scrollables (`code-block-scrollable`)
+- Spinners personalizados (`spinner-lg`)
+- Utilities (`payment-hidden`, `payment-visible`)
+
+**Ejemplo de modificación**:
+```css
+/* Cambiar el tamaño del iframe de challenge */
+.challenge-iframe {
+    width: 100%;
+    height: 600px;        /* ← Cambiar a 700px si necesitas más alto */
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+/* Cambiar colores del callback */
+.challenge-return-success {
+    color: #28a745;       /* ← Verde, cambiar a tu color de marca */
+}
+```
+
+### **2. `template.css` - Layout Principal**
+
+**Ubicación**: `public/css/template.css`
+
+**Contiene**:
+- Layout del body y contenido
+- Navegación (navbar con gradiente)
+- Footer
+- Loading spinner overlay
+- Responsive design
+
+**Ejemplo de modificación**:
+```css
+/* Cambiar el gradiente del navbar */
+.navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Cambiar a tus colores de marca: */
+    /* background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%); */
+}
+
+/* Cambiar el color del footer */
+.footer {
+    background: #2d3748;  /* ← Cambiar a tu color */
+    color: white;
+}
+```
+
+### **3. `welcome.css` - Página de Bienvenida**
+
+**Ubicación**: `public/css/welcome.css`
+
+**Contiene**:
+- Container principal con animaciones
+- Cards de navegación (Checkout, Debug, Historial)
+- Animaciones (fadeIn, bounce)
+- Info sections
+- Responsive design completo
+
+**Ejemplo de modificación**:
+```css
+/* Cambiar el fondo de la página principal */
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Cambiar a tus colores: */
+    /* background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); */
+}
+
+/* Cambiar efecto hover de cards */
+.card:hover {
+    transform: translateY(-10px);  /* ← Cambiar a -15px para más elevación */
+    border-color: #667eea;         /* ← Color de tu marca */
+}
+```
+
+### **Convenciones de Nombres**
+
+Para mantener consistencia, usamos estos prefijos:
+
+| Prefijo | Uso | Ejemplo |
+|---------|-----|---------|
+| `challenge-return-*` | Elementos del callback 3DS | `challenge-return-success` |
+| `payment-*` | Utilities generales | `payment-hidden`, `payment-visible` |
+| `icon-*` | Tamaños de íconos | `icon-xl`, `icon-lg`, `icon-md` |
+| `code-block-*` | Bloques de código | `code-block-scrollable` |
+| `spinner-*` | Spinners de carga | `spinner-lg` |
+
+### **Personalización de Colores de Marca**
+
+Si quieres cambiar los colores del sistema completo:
+
+**1. Define tus colores** (crea `public/css/variables.css`):
+```css
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+}
+```
+
+**2. Usa las variables en tus CSS**:
+```css
+.navbar {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+```
+
+**3. Incluye el archivo en el template**:
+```html
+<link rel="stylesheet" href="{{ asset('css/variables.css') }}">
+```
+
+### **Cache del Navegador**
+
+Cuando modifiques archivos CSS, es posible que el navegador use la versión cacheada. Para forzar actualización:
+
+**Opción 1 - Desarrollo** (Ctrl + F5 en el navegador):
+```
+Ctrl + Shift + R  (Chrome/Firefox)
+Cmd + Shift + R   (Mac)
+```
+
+**Opción 2 - Producción** (Versioning automático):
+```html
+<!-- En template/app.blade.php -->
+<link rel="stylesheet" href="{{ asset('css/payment-gateway.css') }}?v={{ config('app.version', '2.0.0') }}">
+```
+
+O usa Laravel Mix/Vite para hash automático.
+
+### **Testing de Cambios CSS**
+
+Después de modificar CSS:
+
+```bash
+# 1. Limpiar cache de vistas
+php artisan view:clear
+
+# 2. Recargar la página con Ctrl + F5
+
+# 3. Verificar en el inspector del navegador (F12)
+#    que los estilos se aplicaron correctamente
+```
+
+### **Responsive Design**
+
+Todos los archivos CSS incluyen media queries para dispositivos móviles:
+
+```css
+/* Tablets y móviles */
+@media (max-width: 768px) {
+    /* Ajustes para pantallas medianas */
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    /* Ajustes para pantallas pequeñas */
+}
+```
+
+**Probar responsive**:
+- Chrome DevTools (F12) → Toggle Device Toolbar (Ctrl + Shift + M)
+- Probar en móvil real
+- Usar diferentes tamaños de ventana
+
+### **Buenas Prácticas**
+
+✅ **Hacer**:
+- Usar clases reutilizables (`.icon-xl`, `.payment-hidden`)
+- Mantener los archivos CSS organizados por sección
+- Comentar secciones con encabezados claros
+- Usar variables CSS para colores consistentes
+- Probar en diferentes navegadores
+
+❌ **Evitar**:
+- Estilos inline (`style="..."`) - usar clases CSS
+- `!important` excesivo - solo cuando sea necesario
+- Selectores muy específicos - mantenerlos simples
+- Duplicar estilos - crear clases reutilizables
+- Mezclar lógica de estilos entre archivos
+
+---
+
+## 📚 Documentación y Recursos
+
+### **Documentación del Proyecto**
+
+- **README.md** (este archivo) - Guía completa de instalación y uso
+- **Logs del Sistema**: `storage/logs/laravel.log` - Trazabilidad completa con emojis
+- **Configuración CSS**: Ver sección "Mantenimiento y Personalización CSS"
+
+### **Recursos Externos**
+
+- **CyberSource**: [developer.cybersource.com](https://developer.cybersource.com) - Documentación oficial de la API
+- **3D Secure 2.2.0**: [EMVCo Specification](https://www.emvco.com/emv-technologies/3d-secure/) - Especificación del protocolo
+- **Laravel 11**: [laravel.com/docs](https://laravel.com/docs/11.x) - Documentación del framework
+- **CardinalCommerce**: Proveedor de autenticación 3DS (integrado automáticamente)
+
+### **Configuración Importante**
+
+⚠️ **CRÍTICO para 3DS Challenge**: El flujo de challenge requiere configuración especial de sesión:
+
+**Desarrollo (HTTP)**:
+```env
+SESSION_SAME_SITE=null
+SESSION_DRIVER=database
+```
+
+**Producción (HTTPS)**:
+```env
+SESSION_SAME_SITE=none
+SESSION_SECURE_COOKIE=true
+SESSION_DRIVER=database
+```
+
+> **¿Por qué?** El iframe del challenge 3DS viene de un dominio externo (CardinalCommerce). Sin `SESSION_SAME_SITE=null/none`, las cookies de sesión se bloquean y el challenge falla mostrando una página de error dentro del iframe
 
 ---
 
