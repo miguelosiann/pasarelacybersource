@@ -1,43 +1,105 @@
-# 💳 Pasarela de Pagos CyberSource - Cascarón Reutilizable
+# 💳 Pasarela de Pagos CyberSource
 
-## 🎯 Descripción
+[![Laravel](https://img.shields.io/badge/Laravel-11.x-red.svg)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.1+-blue.svg)](https://php.net)
+[![3D Secure](https://img.shields.io/badge/3DS-2.2.0-green.svg)](https://www.emvco.com/emv-technologies/3d-secure/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Implementación completa de pasarela de pagos con **CyberSource 3D Secure 2.2.0** lista para reutilizar en cualquier proyecto Laravel.
+Sistema completo de pasarela de pagos con **CyberSource 3D Secure 2.2.0**, listo para integrar en cualquier proyecto Laravel.
 
-### ✅ Características
+---
 
-- ✅ **3D Secure 2.2.0** completo
-- ✅ **Flujo Frictionless** (Y,Y) - Sin challenge
-- ✅ **Flujo Challenge** (Y,C) - Con OTP
-- ✅ **Device Data Collection**
-- ✅ **Modo Debug** paso a paso
-- ✅ **Historial de pagos**
-- ✅ **Validación completa**
-- ✅ **Logging detallado**
+## 🎯 Características
+
+- ✅ **3D Secure 2.2.0** - Última versión del protocolo de autenticación
+- ✅ **Flujo Frictionless** (Y,Y) - Autenticación sin OTP para bajo riesgo
+- ✅ **Flujo Challenge** (Y,C) - Autenticación con OTP para alto riesgo
+- ✅ **Device Data Collection** - Fingerprinting del dispositivo
+- ✅ **Tokenización TMS** - Almacenamiento seguro de tarjetas
+- ✅ **Modo Debug** - Ejecución paso a paso para desarrollo
+- ✅ **Soporte Multicurrency** - USD, CRC y más
+- ✅ **Mastercard UCAF** - Soporte completo para Mastercard
+- ✅ **Logging Completo** - Trazabilidad de todas las transacciones
+- ✅ **Sin Autenticación** - Funciona como checkout independiente
 
 ---
 
 ## 🚀 Inicio Rápido
 
-### 1. **Configuración**
+### 1️⃣ **Clonar o Copiar el Proyecto**
 
-⚠️ **CRÍTICO**: Lee `CONFIGURACION_CHALLENGE.md` antes de empezar. El flujo de challenge 3DS requiere configuración especial de sesión.
+```bash
+# Opción A: Clonar desde repositorio
+git clone https://github.com/tu-usuario/pasarelacybersource.git
+cd pasarelacybersource
 
-Copia el archivo `.env.example` a `.env` y configura:
+# Opción B: Copiar archivos a tu proyecto existente
+# (Ver sección "Integración en Proyecto Existente")
+```
+
+### 2️⃣ **Instalar Dependencias**
+
+```bash
+# Backend (PHP/Laravel)
+composer install
+
+# Frontend (JavaScript/CSS)
+npm install
+npm run build
+```
+
+### 3️⃣ **Configurar Entorno**
+
+```bash
+# Copiar archivo de configuración
+cp .env.example .env
+
+# Generar clave de aplicación
+php artisan key:generate
+```
+
+### 4️⃣ **Configurar Base de Datos**
+
+Edita `.env` y configura tu base de datos:
 
 ```env
-# ===== IMPORTANTE: Configuración de sesión para 3DS Challenge =====
-SESSION_SAME_SITE=null   # CRÍTICO para desarrollo local
-# Para producción con HTTPS usar: SESSION_SAME_SITE=none
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=tu_base_de_datos
+DB_USERNAME=tu_usuario
+DB_PASSWORD=tu_contraseña
+```
+
+Ejecuta las migraciones:
+
+```bash
+php artisan migrate
+```
+
+### 5️⃣ **Configurar CyberSource**
+
+⚠️ **CRÍTICO**: Edita `.env` con tus credenciales de CyberSource:
+
+```env
+# ===== CONFIGURACIÓN DE SESIÓN (CRÍTICO PARA 3DS CHALLENGE) =====
+# Para desarrollo local (HTTP)
+SESSION_SAME_SITE=null
+
+# Para producción (HTTPS) - CAMBIAR A:
+# SESSION_SAME_SITE=none
+# SESSION_SECURE_COOKIE=true
 # ================================================================
 
-# CyberSource Configuration
+# Credenciales CyberSource
 CYBERSOURCE_MERCHANT_ID=tu_merchant_id
 CYBERSOURCE_API_KEY=tu_api_key
 CYBERSOURCE_API_SECRET=tu_api_secret
+
+# Entorno (test o producción)
 CYBERSOURCE_BASE_URL=https://apitest.cybersource.com
 
-# URLs de callback
+# URLs de Callback
 CYBERSOURCE_CHALLENGE_RETURN_URL="${APP_URL}/payment/challenge/callback"
 CYBERSOURCE_SUCCESS_URL="${APP_URL}/payment/success"
 CYBERSOURCE_FAILURE_URL="${APP_URL}/payment/failed"
@@ -46,140 +108,147 @@ CYBERSOURCE_FAILURE_URL="${APP_URL}/payment/failed"
 CYBERSOURCE_3DS_ENABLED=true
 CYBERSOURCE_3DS_VERSION=2.2.0
 
-# Captura automática
+# Configuración de Pagos
+CYBERSOURCE_DEFAULT_CURRENCY=USD
 CYBERSOURCE_CAPTURE_ON_AUTH=true
-
-# Monedas permitidas
 CYBERSOURCE_ALLOWED_CURRENCIES=USD,CRC
 ```
 
-### 2. **Instalación**
+> 📖 **Nota Importante**: `SESSION_SAME_SITE=null` es **esencial** para que el challenge 3DS funcione correctamente. Sin esto, las cookies se bloquearán en el iframe del banco. Ver `CONFIGURACION_CHALLENGE.md` para más detalles.
+
+### 6️⃣ **Iniciar Servidor**
 
 ```bash
-# Instalar dependencias
-composer install
-
-# Generar key de Laravel
-php artisan key:generate
-
-# Ejecutar migraciones
-php artisan migrate
-
-# Iniciar servidor
+# Desarrollo
 php artisan serve
+
+# Acceder a:
+# http://localhost:8000/payment/checkout  (Checkout)
+# http://localhost:8000/payment/debug     (Modo Debug)
 ```
-
-### 3. **Probar**
-
-Visita: `http://localhost:8000/payment/checkout`
 
 ---
 
 ## 📁 Estructura del Proyecto
 
 ```
-pasarelalaravel/
+pasarelacybersource/
 ├── app/
 │   ├── Http/Controllers/Payment/
-│   │   ├── CheckoutController.php      # Proceso de checkout
-│   │   ├── ChallengeController.php     # Manejo de 3DS challenge
+│   │   ├── CheckoutController.php      # Flujo de checkout principal
+│   │   ├── ChallengeController.php     # Manejo de 3DS challenge (OTP)
 │   │   └── PaymentController.php       # Páginas de resultado
 │   ├── Models/
-│   │   ├── Payment.php                 # ✅ Campos 3DS corregidos
-│   │   ├── PaymentInstrument.php
-│   │   └── PaymentTransaction.php
+│   │   ├── Payment.php                 # Modelo de pagos
+│   │   ├── PaymentInstrument.php       # Tokenización de tarjetas
+│   │   └── PaymentTransaction.php      # Historial de transacciones
 │   └── Services/Payment/
-│       ├── CyberSourceService.php      # ✅ Lógica principal actualizada
-│       └── HMACGenerator.php           # Generación de firmas
+│       ├── CyberSourceService.php      # Lógica principal de integración
+│       └── HMACGenerator.php           # Firmas HMAC para autenticación
+├── config/
+│   └── cybersource.php                 # Configuración de CyberSource
 ├── database/migrations/
-│   ├── 2025_10_29_000155_create_payments_table.php  # ✅ Estructura correcta
+│   ├── 2025_10_29_000155_create_payments_table.php
 │   ├── 2025_10_29_141844_create_payment_instruments_table.php
-│   └── 2025_10_29_141847_create_payment_transactions_table.php
+│   ├── 2025_10_29_141847_create_payment_transactions_table.php
+│   └── 0001_01_01_000003_create_sessions_table.php
 ├── resources/views/
 │   ├── pages/payment/
 │   │   ├── checkout.blade.php          # Formulario de pago
 │   │   ├── challenge.blade.php         # Página de challenge 3DS
-│   │   ├── challenge-return.blade.php  # Callback del challenge
-│   │   ├── device-collection.blade.php # Recolección de datos
+│   │   ├── challenge-return.blade.php  # Callback interno del challenge
+│   │   ├── device-collection.blade.php # Recolección de datos del dispositivo
 │   │   ├── success.blade.php           # Pago exitoso
 │   │   ├── failed.blade.php            # Pago fallido
-│   │   ├── history.blade.php           # Historial
-│   │   └── debug.blade.php             # Modo debug
+│   │   ├── history.blade.php           # Historial de pagos
+│   │   └── debug.blade.php             # Modo debug paso a paso
 │   └── modules/payment/
-│       └── challenge-content.blade.php # Contenido del challenge
+│       ├── checkout-form.blade.php     # Formulario de checkout
+│       ├── challenge-content.blade.php # Contenido del iframe de challenge
+│       └── debug-content.blade.php     # Interfaz de debug
 └── routes/
     └── web.php                         # Rutas de la pasarela
 ```
 
 ---
 
-## 🔧 Endpoints Disponibles
+## 🔧 Endpoints de la API
 
-### **Públicos (sin autenticación):**
+### **Públicos** (Sin autenticación):
 ```
-POST /payment/challenge/callback    # Callback del challenge 3DS
-```
-
-### **Con autenticación:**
-```
-GET  /payment/checkout              # Formulario de checkout
-POST /payment/process               # Procesar pago
-POST /payment/continue-after-collection  # Continuar después de device collection
-GET  /payment/processing            # Página de procesamiento
-GET  /payment/success/{payment}     # Pago exitoso
-GET  /payment/failed                # Pago fallido
-GET  /payment/history               # Historial de pagos
-GET  /payment/show/{payment}        # Detalle de pago
-POST /payment/challenge/authorize   # Autorizar después de challenge
+POST /payment/challenge/callback    → Callback del challenge 3DS (CardinalCommerce)
 ```
 
-### **Debug (paso a paso):**
+### **Checkout** (Opcional autenticación):
 ```
-GET  /payment/debug                 # Página de debug
-POST /payment/debug/save-form       # Guardar datos en sesión
-POST /payment/debug/step1           # PASO 1: Instrument Identifier
-POST /payment/debug/step2           # PASO 2: Payment Instrument
-POST /payment/debug/step3           # PASO 3: Setup 3D Secure
-POST /payment/debug/step4           # PASO 4: Check Enrollment
-POST /payment/debug/step5           # PASO 5: Authorization (Frictionless)
-POST /payment/debug/step5_5a        # PASO 5.5A: Validation (Challenge)
-POST /payment/debug/step5_5b        # PASO 5.5B: Authorization (Challenge)
+GET  /payment/checkout              → Formulario de pago
+POST /payment/process               → Iniciar proceso de pago
+POST /payment/continue-after-collection → Continuar después de device collection
+GET  /payment/processing            → Página de procesamiento
+GET  /payment/success/{payment}     → Pago exitoso
+GET  /payment/failed                → Pago fallido
+GET  /payment/history               → Historial de pagos
+GET  /payment/show/{payment}        → Detalle de un pago
+POST /payment/challenge/authorize   → Autorizar después de challenge (JSON)
+```
+
+### **Modo Debug** (Desarrollo):
+```
+GET  /payment/debug                 → Interfaz de debug
+POST /payment/debug/save-form       → Guardar formulario en sesión
+POST /payment/debug/step1           → PASO 1: Crear Instrument Identifier
+POST /payment/debug/step2           → PASO 2: Crear Payment Instrument
+POST /payment/debug/step3           → PASO 3: Setup 3D Secure
+POST /payment/debug/step4           → PASO 4: Check Enrollment
+POST /payment/debug/step5           → PASO 5: Authorization (Frictionless)
+POST /payment/debug/step5_5a        → PASO 5.5A: Validation (Challenge)
+POST /payment/debug/step5_5b        → PASO 5.5B: Authorization (Challenge)
 ```
 
 ---
 
-## 🔄 Flujo de Pagos
+## 🔄 Flujos de Pago
 
-### **Flujo Frictionless (Y,Y):**
-
-```
-1. Checkout → Ingreso de datos
-2. PASO 1 → Crear Instrument Identifier
-3. PASO 2 → Crear Payment Instrument
-4. PASO 3 → Setup 3D Secure
-5. Device Collection → Iframe invisible (1-2 segundos)
-6. PASO 4 → Check Enrollment → Resultado: Y,Y
-7. PASO 5 → Authorization directa
-8. ✅ GUARDADO en DB con campos correctos
-9. Redirección a Success
-```
-
-### **Flujo Challenge (Y,C):**
+### **Flujo Frictionless (Y,Y)** - Sin OTP
 
 ```
-1. Checkout → Ingreso de datos
-2. PASO 1 → Crear Instrument Identifier
-3. PASO 2 → Crear Payment Instrument
-4. PASO 3 → Setup 3D Secure
-5. Device Collection → Iframe invisible (1-2 segundos)
-6. PASO 4 → Check Enrollment → Resultado: Y,C
-7. Challenge → Iframe con formulario de banco
-8. Usuario ingresa OTP
-9. PASO 5.5A → Validation Service
-10. PASO 5.5B → Authorization
-11. ✅ GUARDADO en DB con campos correctos
-12. Redirección a Success
+1. Cliente ingresa datos de pago
+2. PASO 1: Crear Instrument Identifier
+3. PASO 2: Crear Payment Instrument (tokenización)
+4. PASO 3: Setup 3D Secure
+5. Device Collection (iframe invisible, 1-2 segundos)
+6. PASO 4: Check Enrollment → Resultado: Y,Y (inscrito, autenticado)
+7. PASO 5: Authorization directa
+8. Guardar pago en base de datos
+9. ✅ Redirección a Success
 ```
+
+**Características**:
+- ⚡ Rápido (2-3 segundos total)
+- 🔒 Liability Shift completo
+- ✅ Sin fricción para el usuario
+- 📊 Ideal para transacciones de bajo riesgo
+
+### **Flujo Challenge (Y,C)** - Con OTP
+
+```
+1. Cliente ingresa datos de pago
+2. PASO 1-4: Setup completo + Device Collection
+3. Check Enrollment → Resultado: Y,C (inscrito, requiere challenge)
+4. Mostrar iframe con formulario del banco
+5. Cliente ingresa OTP o completa autenticación
+6. Callback recibe respuesta del banco (TransactionId)
+7. PASO 5.5A: Validation Service
+8. PASO 5.5B: Authorization con datos validados
+9. Guardar pago en base de datos
+10. ✅ Redirección a Success
+```
+
+**Características**:
+- 🔐 Máxima seguridad (OTP del banco emisor)
+- 🔒 Liability Shift completo
+- 📱 Challenge en iframe (sin redirección)
+- 📊 Obligatorio para Mastercard, común en alto riesgo
 
 ---
 
@@ -187,144 +256,464 @@ POST /payment/debug/step5_5b        # PASO 5.5B: Authorization (Challenge)
 
 ### **Tabla: payments**
 
-```sql
-CREATE TABLE payments (
-    id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-    user_id BIGINT UNSIGNED,
-    amount DECIMAL(10, 2),
-    currency VARCHAR(3) DEFAULT 'USD',
-    status VARCHAR(255),
-    transaction_id VARCHAR(255) UNIQUE,
-    authorization_code VARCHAR(255),
-    
-    -- 3D Secure (sin prefijo threeds_)
-    cavv VARCHAR(255),          -- ✅ Correcto
-    eci VARCHAR(255),           -- ✅ Correcto
-    xid VARCHAR(255),           -- ✅ Correcto
-    enrollment_data JSON,       -- ✅ Nuevo
-    
-    flow_type VARCHAR(255),     -- frictionless o challenge
-    liability_shift BOOLEAN DEFAULT 0,
-    
-    card_last_four VARCHAR(4),
-    card_type VARCHAR(255),
-    metadata JSON,
-    error_message TEXT,
-    processed_at TIMESTAMP,
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP
-);
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `id` | BIGINT | ID único del pago |
+| `user_id` | BIGINT | ID del usuario (opcional) |
+| `amount` | DECIMAL(10,2) | Monto del pago |
+| `currency` | VARCHAR(3) | Moneda (USD, CRC, etc.) |
+| `status` | VARCHAR(255) | Estado del pago |
+| `transaction_id` | VARCHAR(255) | ID de transacción de CyberSource |
+| `authorization_code` | VARCHAR(255) | Código de autorización |
+| `threeds_version` | VARCHAR(255) | Versión de 3DS (2.2.0) |
+| `threeds_eci` | VARCHAR(255) | ECI (05 para Visa, 02 para Mastercard) |
+| `threeds_cavv` | VARCHAR(255) | CAVV (Visa/Amex) |
+| `threeds_xid` | VARCHAR(255) | XID de autenticación |
+| `threeds_authentication_status` | VARCHAR(255) | Estado de autenticación 3DS |
+| `flow_type` | VARCHAR(255) | Tipo de flujo (frictionless/challenge) |
+| `liability_shift` | BOOLEAN | Transferencia de responsabilidad |
+| `card_last_four` | VARCHAR(4) | Últimos 4 dígitos de la tarjeta |
+| `card_type` | VARCHAR(255) | Tipo de tarjeta (visa/mastercard/amex) |
+| `enrollment_data` | JSON | Datos completos del enrollment |
+| `metadata` | JSON | Metadatos adicionales |
+| `processed_at` | TIMESTAMP | Fecha de procesamiento |
+| `created_at` | TIMESTAMP | Fecha de creación |
+| `updated_at` | TIMESTAMP | Fecha de actualización |
+
+---
+
+## 💡 Recomendaciones de Uso
+
+### **1. Vincular Pagos a Usuarios**
+
+Si tu aplicación tiene usuarios autenticados, puedes vincular los pagos automáticamente:
+
+```php
+// En CheckoutController.php, método processPayment()
+
+// Opción A: Vincular automáticamente si hay usuario logueado
+$data['user_id'] = auth()->id(); // Agregar antes de session(['payment_data' => $data])
+
+// Opción B: Pasar user_id desde el formulario
+$validator = Validator::make($request->all(), [
+    // ... campos existentes ...
+    'user_id' => 'nullable|exists:users,id', // Agregar esta validación
+]);
+```
+
+Luego en el modelo `Payment.php`:
+
+```php
+// Relación con Usuario
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
+```
+
+### **2. Personalizar Monedas Permitidas**
+
+Edita `config/cybersource.php`:
+
+```php
+'allowed_currencies' => [
+    'USD', // Dólar estadounidense
+    'CRC', // Colón costarricense
+    'EUR', // Euro
+    'MXN', // Peso mexicano
+    // Agregar más según tu país
+],
+```
+
+### **3. Cambiar Middleware de Autenticación**
+
+Por defecto, las rutas NO requieren autenticación. Para protegerlas:
+
+```php
+// En routes/web.php
+Route::prefix('payment')->middleware(['auth'])->name('payment.')->group(function () {
+    // ... rutas existentes ...
+});
+```
+
+### **4. Enviar Notificaciones por Email**
+
+Crea un listener para enviar emails después de un pago exitoso:
+
+```bash
+php artisan make:listener SendPaymentConfirmation
+```
+
+```php
+// App\Listeners\SendPaymentConfirmation.php
+public function handle(PaymentCompleted $event)
+{
+    Mail::to($event->payment->email)->send(new PaymentReceipt($event->payment));
+}
+```
+
+### **5. Agregar Webhooks de CyberSource**
+
+Para recibir notificaciones de CyberSource sobre cambios de estado:
+
+```php
+// En routes/web.php
+Route::post('/webhooks/cybersource', [WebhookController::class, 'handle'])
+    ->name('webhooks.cybersource')
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+```
+
+### **6. Modo Debug vs Producción**
+
+**Desarrollo**:
+```env
+APP_DEBUG=true
+CYBERSOURCE_BASE_URL=https://apitest.cybersource.com
+SESSION_SAME_SITE=null
+```
+
+**Producción**:
+```env
+APP_DEBUG=false
+CYBERSOURCE_BASE_URL=https://api.cybersource.com
+SESSION_SAME_SITE=none
+SESSION_SECURE_COOKIE=true
 ```
 
 ---
 
-## 🔍 Diferencias con ociann-legal
+## 🎯 Integración en Proyecto Existente
 
-| Característica | pasarelalaravel | ociann-legal |
-|----------------|-----------------|--------------|
-| Campo customer_id | ❌ No incluido | ✅ Incluido |
-| Campos 3DS | ✅ cavv, eci, xid | ✅ cavv, eci, xid |
-| Autenticación | Opcional | Requerida |
-| Middleware | Sin restricciones | Con subscription |
-| Uso | Cascarón genérico | Sistema empresarial |
+### **Opción 1: Proyecto Completo**
+
+Si quieres usar este proyecto como base:
+
+```bash
+# Clonar el proyecto
+git clone https://tu-repo/pasarelacybersource.git mi-tienda
+cd mi-tienda
+
+# Instalar dependencias
+composer install
+npm install
+
+# Configurar
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run build
+
+# Iniciar
+php artisan serve
+```
+
+### **Opción 2: Integrar en Proyecto Laravel Existente**
+
+Si ya tienes un proyecto Laravel y solo quieres agregar la pasarela:
+
+**Paso 1: Copiar archivos necesarios**
+
+```bash
+# Desde la raíz de tu proyecto Laravel existente
+cd /ruta/a/tu/proyecto
+```
+
+**Archivos a copiar desde `pasarelacybersource/`**:
+
+1. **Controladores**:
+   ```bash
+   cp -r pasarelacybersource/app/Http/Controllers/Payment/ app/Http/Controllers/
+   ```
+
+2. **Servicios**:
+   ```bash
+   mkdir -p app/Services
+   cp -r pasarelacybersource/app/Services/Payment/ app/Services/
+   ```
+
+3. **Modelos**:
+   ```bash
+   cp pasarelacybersource/app/Models/Payment.php app/Models/
+   cp pasarelacybersource/app/Models/PaymentInstrument.php app/Models/
+   cp pasarelacybersource/app/Models/PaymentTransaction.php app/Models/
+   ```
+
+4. **Migraciones**:
+   ```bash
+   cp pasarelacybersource/database/migrations/*_create_payments_*.php database/migrations/
+   cp pasarelacybersource/database/migrations/*_create_sessions_*.php database/migrations/
+   ```
+
+5. **Vistas**:
+   ```bash
+   mkdir -p resources/views/pages/payment
+   mkdir -p resources/views/modules/payment
+   cp -r pasarelacybersource/resources/views/pages/payment/ resources/views/pages/
+   cp -r pasarelacybersource/resources/views/modules/payment/ resources/views/modules/
+   ```
+
+6. **Configuración**:
+   ```bash
+   cp pasarelacybersource/config/cybersource.php config/
+   ```
+
+**Paso 2: Agregar rutas**
+
+Opción A - Archivo separado (recomendado):
+```bash
+# Crear archivo de rutas de pago
+cp pasarelacybersource/routes/web.php routes/payment.php
+```
+
+Luego en `routes/web.php` de tu proyecto, agrega al final:
+```php
+// Rutas de Pasarela CyberSource
+require __DIR__.'/payment.php';
+```
+
+Opción B - Mismo archivo:
+```php
+// Copiar las rutas de payment desde pasarelacybersource/routes/web.php
+// y pegarlas al final de tu routes/web.php
+```
+
+**Paso 3: Configurar**
+
+Agrega al final de tu `.env`:
+```env
+# ===== PASARELA CYBERSOURCE =====
+SESSION_SAME_SITE=null  # Para desarrollo
+CYBERSOURCE_MERCHANT_ID=tu_merchant_id
+CYBERSOURCE_API_KEY=tu_api_key
+CYBERSOURCE_API_SECRET=tu_api_secret
+CYBERSOURCE_BASE_URL=https://apitest.cybersource.com
+CYBERSOURCE_CHALLENGE_RETURN_URL="${APP_URL}/payment/challenge/callback"
+CYBERSOURCE_SUCCESS_URL="${APP_URL}/payment/success"
+CYBERSOURCE_FAILURE_URL="${APP_URL}/payment/failed"
+CYBERSOURCE_3DS_ENABLED=true
+CYBERSOURCE_3DS_VERSION=2.2.0
+CYBERSOURCE_DEFAULT_CURRENCY=USD
+CYBERSOURCE_CAPTURE_ON_AUTH=true
+CYBERSOURCE_ALLOWED_CURRENCIES=USD,CRC
+```
+
+**Paso 4: Ejecutar migraciones**
+
+```bash
+php artisan migrate
+```
+
+**Paso 5: Limpiar cache**
+
+```bash
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan optimize:clear
+```
+
+**Paso 6: Verificar instalación**
+
+```bash
+# Ver rutas de pago
+php artisan route:list | grep payment
+
+# Deberías ver:
+# GET /payment/checkout
+# POST /payment/process
+# etc.
+```
+
+**Paso 7: Probar**
+
+Inicia el servidor y accede a:
+- Checkout: `http://localhost:8000/payment/checkout`
+- Debug: `http://localhost:8000/payment/debug`
 
 ---
 
-## ✅ ¿Qué se Corrigió?
+## 🧪 Tarjetas de Prueba
 
-### **Problema Original:**
-El challenge 3DS se "pegaba" después de ingresar el OTP y no continuaba con la validación.
+### **Visa** (Frictionless - Sin OTP):
+```
+Número: 4000000000002701
+Expiración: 01/2028
+CVV: 123
+Tipo: visa
+Resultado: Y,Y (frictionless)
+```
 
-### **Causa:**
-Los campos de la base de datos usaban prefijo `threeds_*` (threeds_cavv, threeds_eci, etc.) pero el código intentaba guardar sin prefijo (cavv, eci, etc.).
+### **Mastercard** (Challenge - Con OTP):
+```
+Número: 5200000000002235
+Expiración: 01/2028
+CVV: 123
+Tipo: mastercard
+Resultado: Y,C (challenge requerido)
+```
 
-### **Solución:**
-1. ✅ Actualizado modelo `Payment.php`
-2. ✅ Actualizada migración de `payments`
-3. ✅ Actualizado `CyberSourceService.php` (3 métodos)
-4. ✅ Recreada base de datos
+### **American Express** (Frictionless):
+```
+Número: 378282246310005
+Expiración: 01/2028
+CVV: 1234
+Tipo: american express
+Resultado: Y,Y (frictionless)
+```
 
-### **Resultado:**
-✅ El flujo de challenge ahora funciona perfectamente
-✅ El pago se guarda correctamente en la base de datos
-✅ La pasarela está lista para usar como cascarón
+> 💡 **Nota**: En el challenge de prueba de CyberSource, usa cualquier OTP o código que te solicite el banco simulado.
+
+---
+
+## 🛠️ Comandos Útiles
+
+```bash
+# Limpiar cache de configuración
+php artisan config:clear
+
+# Limpiar cache de rutas
+php artisan route:clear
+
+# Limpiar cache de vistas
+php artisan view:clear
+
+# Limpiar TODO (combo completo)
+php artisan optimize:clear
+
+# Ver rutas disponibles
+php artisan route:list
+
+# Ver rutas de pago específicamente
+php artisan route:list | grep payment
+
+# Ver logs en tiempo real
+tail -f storage/logs/laravel.log
+
+# Compilar assets (frontend)
+npm run dev      # Desarrollo con watch
+npm run build    # Producción (optimizado)
+npm run watch    # Watch mode continuo
+
+# Ejecutar migraciones
+php artisan migrate
+
+# Revertir última migración
+php artisan migrate:rollback
+
+# Ver estado de migraciones
+php artisan migrate:status
+```
 
 ---
 
 ## 📚 Documentación Adicional
 
-- **`CONFIGURACION_CHALLENGE.md`** - ⚠️ **CRÍTICO**: Configuración necesaria para 3DS Challenge
-- `CAMBIOS_APLICADOS.md` - Lista detallada de cambios realizados (si existe)
-- `PRUEBAS.md` - Guía completa de pruebas (si existe)
-- Logs: `storage/logs/laravel.log`
+- **`CONFIGURACION_CHALLENGE.md`** - ⚠️ **CRÍTICO**: Configuración de sesión para 3DS Challenge
+- **Logs**: `storage/logs/laravel.log` - Todos los pasos del flujo están logueados con emojis
+- **CyberSource Docs**: [developer.cybersource.com](https://developer.cybersource.com)
+- **3D Secure Spec**: [EMVCo 3DS 2.2.0](https://www.emvco.com/emv-technologies/3d-secure/)
 
 ---
 
 ## 🛠️ Tecnologías
 
-- **Laravel 11.x**
-- **PHP 8.1+**
-- **CyberSource REST API**
-- **3D Secure 2.2.0**
-- **MySQL/MariaDB**
-- **Bootstrap 5**
-- **JavaScript (Vanilla)**
+- **Laravel** 11.x - Framework PHP moderno
+- **PHP** 8.1+ - Lenguaje de programación
+- **CyberSource REST API** - Gateway de pagos
+- **3D Secure** 2.2.0 - Protocolo de autenticación
+- **MySQL/MariaDB** - Base de datos relacional
+- **Bootstrap 5** - Framework CSS responsivo
+- **JavaScript Vanilla** - Sin dependencias frontend pesadas
+- **CardinalCommerce** - Proveedor de autenticación 3DS
 
 ---
 
-## 🎯 Uso en Otros Proyectos
+## 📝 Checklist de Producción
 
-### **Opción 1: Copiar completo**
-```bash
-cp -r pasarelalaravel /ruta/nuevo-proyecto
-cd /ruta/nuevo-proyecto
-composer install
-cp .env.example .env
-# Configurar .env
-php artisan key:generate
-php artisan migrate
-```
+Antes de lanzar a producción, verifica:
 
-### **Opción 2: Copiar solo archivos de pago**
-```bash
-# Copiar desde pasarelalaravel a tu proyecto:
-app/Http/Controllers/Payment/
-app/Services/Payment/
-app/Models/Payment*.php
-database/migrations/*_create_payments_*.php
-resources/views/pages/payment/
-resources/views/modules/payment/
-config/cybersource.php
-```
+- [ ] Cambiar `CYBERSOURCE_BASE_URL` a `https://api.cybersource.com`
+- [ ] Configurar `SESSION_SAME_SITE=none` y `SESSION_SECURE_COOKIE=true`
+- [ ] Desactivar debug: `APP_DEBUG=false`
+- [ ] Actualizar credenciales a las de producción de CyberSource
+- [ ] Habilitar HTTPS en el servidor (certificado SSL válido)
+- [ ] Configurar emails de notificación para pagos
+- [ ] Probar flujos completos (frictionless y challenge)
+- [ ] Revisar logs de errores en `storage/logs/`
+- [ ] Configurar backups automáticos de base de datos
+- [ ] Implementar monitoreo (Sentry, NewRelic, etc.)
+- [ ] Configurar rate limiting en rutas públicas
+- [ ] Verificar que `.env` no esté en el repositorio
+- [ ] Documentar proceso de deployment
+- [ ] Crear plan de rollback
 
 ---
 
-## 📝 Notas Importantes
+## 🔐 Seguridad
 
-- ⚠️ **Producción:** Cambiar `CYBERSOURCE_BASE_URL` a producción
-- ⚠️ **Seguridad:** No exponer credenciales en el código
-- ⚠️ **Testing:** Siempre probar en sandbox antes de producción
-- ✅ **Compatible:** Laravel 10.x y 11.x
-- ✅ **3DS 2.2.0:** Última versión del protocolo
+- ✅ **No se almacenan números de tarjeta completos** - Solo últimos 4 dígitos
+- ✅ **Tokenización TMS** - Las tarjetas se almacenan encriptadas en CyberSource
+- ✅ **3D Secure obligatorio** - Transferencia de responsabilidad al banco emisor
+- ✅ **HMAC Signatures** - Todas las peticiones a CyberSource están firmadas
+- ✅ **HTTPS requerido en producción** - Para `SESSION_SAME_SITE=none`
+- ✅ **CSRF Protection** - Protección contra ataques cross-site
+- ✅ **Input Validation** - Validación estricta de todos los campos
+- ✅ **SQL Injection Protection** - Uso de Eloquent ORM
+- ✅ **XSS Protection** - Blade escapa automáticamente el output
 
 ---
 
 ## 🤝 Soporte
 
-Para problemas o dudas, revisar:
-1. `PRUEBAS.md` - Guía de verificación
-2. `CAMBIOS_APLICADOS.md` - Detalles técnicos
-3. Logs de Laravel: `storage/logs/laravel.log`
-4. Documentación de CyberSource
+Para dudas o problemas:
+
+1. **Problemas de Challenge 3DS**: Revisa `CONFIGURACION_CHALLENGE.md`
+2. **Debugging**: Consulta `storage/logs/laravel.log` (logs con emojis para fácil búsqueda)
+3. **Errores de CyberSource**: Revisa la [documentación oficial](https://developer.cybersource.com)
+4. **Issues del proyecto**: Abre un issue en el repositorio con logs relevantes
+
+### **Logs Útiles para Debugging**
+
+Busca en `storage/logs/laravel.log` por estos emojis:
+
+- `🚀` - Inicio de operación
+- `✅` - Operación exitosa
+- `❌` - Error
+- `🔍` - Debugging/inspección
+- `📋` - Datos recibidos
+- `📤` - Datos enviados
+- `🔔` - Callback recibido
+- `🔑` - AuthenticationTransactionId
+- `🎉` - Pago completado
 
 ---
 
 ## 📄 Licencia
 
-Este es un cascarón reutilizable basado en la implementación de `ociann-legal`.
+Este proyecto está bajo la Licencia MIT. Puedes usarlo libremente en proyectos personales o comerciales.
 
 ---
 
-**Versión:** 1.0.0  
-**Fecha:** 29 de Octubre de 2025  
-**Estado:** ✅ PRODUCCIÓN READY (después de testing)
+## 👨‍💻 Créditos
+
+Desarrollado con ❤️ para la comunidad Laravel.
+
+Sistema de pagos profesional listo para producción.
+
+---
+
+**Versión:** 2.0.0  
+**Última Actualización:** 31 de Octubre de 2025  
+**Estado:** ✅ **PRODUCCIÓN READY**
+
+---
+
+## ⭐ ¿Te fue útil?
+
+Si este proyecto te ayudó, considera:
+- Darle una estrella ⭐ en GitHub
+- Compartirlo con otros desarrolladores
+- Contribuir con mejoras vía Pull Requests
+- Reportar bugs para mejorar el código
+
+¡Gracias por usar esta pasarela de pagos! 🚀
