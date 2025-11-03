@@ -552,7 +552,11 @@ class CyberSourceService
         $url = "{$this->baseUrl}/pts/v2/payments";
         // Determine commerceIndicator for brand mapping to correct ECI on processor
         $commerceIndicator = $this->determineCommerceIndicator($data['card_number'] ?? null);
+        $isMastercard = $this->isMastercard($data['card_number'] ?? null);
 
+        // ⚠️ CRÍTICO: NO incluir actionList en autorización frictionless
+        // El enrollment ya se validó en PASO 4 (Check Enrollment)
+        // Si enviamos actionList aquí, CyberSource valida 3DS dos veces → ECI 07
         $payload = json_encode([
             'clientReferenceInformation' => [
                 'code' => uniqid('TC_', true),
@@ -560,9 +564,17 @@ class CyberSourceService
             'processingInformation' => [
                 'capture' => config('cybersource.capture_on_authorization', true),
                 ...(isset($commerceIndicator) ? ['commerceIndicator' => $commerceIndicator] : []),
-                'actionList' => ['CONSUMER_AUTHENTICATION'],  // CRÍTICO: Validar 3DS
+                // ❌ NO incluir actionList aquí (ya se validó en enrollment)
                 'authorizationOptions' => [
-                    'initiator' => ['type' => 'merchant']
+                    'initiator' => array_filter([
+                        'type' => 'customer',  // Customer-initiated (frictionless)
+                        // ✅ Mastercard Tokenization Mandate: reason "7"
+                        'merchantInitiatedTransaction' => $isMastercard ? [
+                            'reason' => '7'  // Tokenized transaction
+                        ] : null
+                    ], function($value) {
+                        return $value !== null;
+                    })
                 ]
             ],
             'paymentInformation' => [
@@ -829,7 +841,15 @@ class CyberSourceService
                 ...(isset($commerceIndicator) ? ['commerceIndicator' => $commerceIndicator] : []),
                 // ❌ NO incluir actionList en PASO 5.5B: La autorización NO debe tener actionList porque ya se usó en Setup (PASO 3)
                 'authorizationOptions' => [
-                    'initiator' => ['type' => 'merchant']
+                    'initiator' => array_filter([
+                        'type' => 'merchant',
+                        // ✅ Mastercard Tokenization Mandate: reason "7"
+                        'merchantInitiatedTransaction' => $isMastercard ? [
+                            'reason' => '7'  // Tokenized transaction
+                        ] : null
+                    ], function($value) {
+                        return $value !== null;
+                    })
                 ]
             ],
             'paymentInformation' => [
@@ -1040,6 +1060,7 @@ class CyberSourceService
      * Determina el commerceIndicator según la marca de tarjeta para mapeo correcto de ECI
      * Visa -> 'vbv'
      * Mastercard -> 'spa'
+     * American Express -> 'aesk'
      * Retorna null si no se puede determinar
      */
     protected function determineCommerceIndicator(?string $cardNumber): ?string
@@ -1061,6 +1082,10 @@ class CyberSourceService
         }
         if (strpos($digits, '2') === 0) {
             return 'spa';
+        }
+        // ✅ American Express empieza con 34 o 37
+        if (strpos($digits, '34') === 0 || strpos($digits, '37') === 0) {
+            return 'aesk';
         }
         return null;
     }
@@ -1396,12 +1421,20 @@ class CyberSourceService
             'processingInformation' => [
                 'capture' => config('cybersource.capture_on_auth', true),
                 // Establecer commerceIndicator explícito para 3DS autenticado
-                // Visa: vbv (ECI 05/06); Mastercard: spa (ECI 02/01)
+                // Visa: vbv (ECI 05/06); Mastercard: spa (ECI 02/01); Amex: aesk (ECI 05/06)
                 // Si no se puede determinar, omitir la clave para no interferir
                 ...(isset($commerceIndicator) ? ['commerceIndicator' => $commerceIndicator] : []),
                 // ❌ NO incluir actionList en PASO 5.5B: La autorización NO debe tener actionList porque ya se usó en Setup (PASO 3)
                 'authorizationOptions' => [
-                    'initiator' => ['type' => 'merchant']
+                    'initiator' => array_filter([
+                        'type' => 'merchant',
+                        // ✅ Mastercard Tokenization Mandate: reason "7"
+                        'merchantInitiatedTransaction' => $isMastercard ? [
+                            'reason' => '7'  // Tokenized transaction
+                        ] : null
+                    ], function($value) {
+                        return $value !== null;
+                    })
                 ]
             ],
             'paymentInformation' => [
@@ -1508,9 +1541,17 @@ class CyberSourceService
             ],
             'processingInformation' => [
                 'capture' => config('cybersource.capture_on_auth', true),
-                'actionList' => ['CONSUMER_AUTHENTICATION'],  // CRÍTICO: Validar 3DS
+                // ❌ NO incluir actionList en flujo frictionless (ya se validó en enrollment)
                 'authorizationOptions' => [
-                    'initiator' => ['type' => 'merchant']
+                    'initiator' => array_filter([
+                        'type' => 'customer',  // Customer-initiated (frictionless)
+                        // ✅ Mastercard Tokenization Mandate: reason "7"
+                        'merchantInitiatedTransaction' => $isMastercard ? [
+                            'reason' => '7'  // Tokenized transaction
+                        ] : null
+                    ], function($value) {
+                        return $value !== null;
+                    })
                 ]
             ],
             'paymentInformation' => [
