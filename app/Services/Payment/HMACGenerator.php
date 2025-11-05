@@ -14,6 +14,7 @@ class HMACGenerator
      * @param string $date Date string in RFC 7231 format
      * @param string $requestTarget Request target (e.g., "post /tms/v1/payments")
      * @param string $digest Digest of the request body
+     * @param string $host Host header (e.g., "api.cybersource.com" or "apitest.cybersource.com")
      * @return string Base64 encoded HMAC signature
      */
     public function generateSignature(
@@ -21,9 +22,9 @@ class HMACGenerator
         string $apiSecret,
         string $date,
         string $requestTarget,
-        string $digest
+        string $digest,
+        string $host = 'apitest.cybersource.com'  // Fallback por compatibilidad
     ): string {
-        $host = 'apitest.cybersource.com';
         $signingString = "host: $host\nv-c-date: $date\nrequest-target: $requestTarget\ndigest: $digest\nv-c-merchant-id: $merchantId";
         
         try {

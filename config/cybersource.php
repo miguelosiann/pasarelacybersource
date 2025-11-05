@@ -91,5 +91,39 @@ return [
     'log_requests' => env('CYBERSOURCE_LOG_REQUESTS', true),
     'log_responses' => env('CYBERSOURCE_LOG_RESPONSES', true),
     'log_level' => env('CYBERSOURCE_LOG_LEVEL', 'info'),
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Device Fingerprinting Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Device fingerprinting settings for fraud detection with Decision Manager.
+    | OrgID values:
+    |   Test: 1snn5n9w or 45ssiuz3
+    |   Production: k8vif92e or 9ozphlqx
+    |
+    */
+    
+    'device_fingerprinting' => [
+        'enabled' => env('CYBERSOURCE_DEVICE_FINGERPRINT_ENABLED', true),
+        'org_id' => env('CYBERSOURCE_DEVICE_FINGERPRINT_ORG_ID', '1snn5n9w'),
+        'profiling_domain' => env('CYBERSOURCE_DEVICE_FINGERPRINT_DOMAIN', 'h.online-metrix.net'),
+    ],
+    
+    /*
+    |--------------------------------------------------------------------------
+    | Merchant Defined Data (MDD)
+    |--------------------------------------------------------------------------
+    |
+    | Custom fields sent to CyberSource for reporting and analysis.
+    | MDD5: Business name / Store name
+    | MDD6: Sales channel (Web, Mobile, Call Center, etc.)
+    |
+    */
+    
+    'merchant_defined_data' => [
+        'mdd5_business_name' => env('CYBERSOURCE_MDD5_BUSINESS_NAME', env('APP_NAME', 'Pasarela CyberSource')),
+        'mdd6_sales_channel' => env('CYBERSOURCE_MDD6_SALES_CHANNEL', 'Web'),
+    ],
 ];
 

@@ -29,6 +29,8 @@ class Payment extends Model
         'card_type',
         'metadata',
         'error_message',
+        'error_reason',
+        'risk_score',
         'processed_at',
     ];
 

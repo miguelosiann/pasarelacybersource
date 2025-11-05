@@ -34,6 +34,9 @@
 
     <!-- Vite Assets (si es necesario) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    
+    <!-- Stack para scripts adicionales en el head (Device Fingerprinting, etc.) -->
+    @stack('head')
 </head>
 <body>
     <!-- Navigation -->

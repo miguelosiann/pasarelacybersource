@@ -28,6 +28,20 @@ class CyberSourceService
     }
     
     /**
+     * Generate a unique session ID for device fingerprinting
+     * Format: timestamp + random string (debe ser único por transacción)
+     * Este ID se usa para correlacionar el device fingerprint con la transacción
+     *
+     * @return string
+     */
+    private function generateDeviceFingerprintSessionId(): string
+    {
+        // Generar un ID único: timestamp + random
+        // CyberSource recomienda que sea único por sesión/transacción
+        return time() . '_' . bin2hex(random_bytes(8));
+    }
+    
+    /**
      * Process a complete payment with 3D Secure (with detailed flow tracking)
      *
      * @param array $data Payment data
@@ -246,7 +260,24 @@ class CyberSourceService
     {
         $url = "{$this->baseUrl}/risk/v1/authentication-setups";
         
+        // ⭐ Generar session ID único para device fingerprinting si no existe
+        if (empty($data['device_fingerprint_session_id'])) {
+            $data['device_fingerprint_session_id'] = $this->generateDeviceFingerprintSessionId();
+            Log::info('📱 Generated NEW Device Fingerprint Session ID', [
+                'session_id' => $data['device_fingerprint_session_id'],
+                'reason' => 'not_provided_in_data'
+            ]);
+        } else {
+            Log::info('✅ Using EXISTING ThreatMetrix Session ID', [
+                'session_id' => $data['device_fingerprint_session_id'],
+                'source' => 'from_checkout_page'
+            ]);
+        }
+        
         $payload = json_encode([
+            'clientReferenceInformation' => [
+                'code' => uniqid('SETUP_', true)
+            ],
             'paymentInformation' => [
                 'customer' => ['customerId' => $paymentInstrumentId]
             ]
@@ -256,6 +287,9 @@ class CyberSourceService
         
         if ($response['http_code'] >= 200 && $response['http_code'] < 300) {
             $responseData = json_decode($response['body'], true);
+            
+            // ⭐ Agregar sessionId a la respuesta para que esté disponible en todo el flujo
+            $responseData['device_fingerprint_session_id'] = $data['device_fingerprint_session_id'];
             
             return [
                 'success' => true,
@@ -577,6 +611,30 @@ class CyberSourceService
                     })
                 ]
             ],
+            // ✅ NUEVO: Merchant Defined Data (MDD5 y MDD6) - Requeridos por soporte CyberSource
+            'merchantDefinedInformation' => [
+                [
+                    'key' => '5',
+                    'value' => config('cybersource.merchant_defined_data.mdd5_business_name')
+                ],
+                [
+                    'key' => '6',
+                    'value' => config('cybersource.merchant_defined_data.mdd6_sales_channel')
+                ]
+            ],
+            // ✅ CRÍTICO: Device Fingerprint para 3DS correlation (Cardinal/EMVCo)
+            'deviceInformation' => array_filter([
+                'fingerprintSessionId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
+            // ✅ CRÍTICO: Device Fingerprint para Decision Manager Dashboard
+            // Según documentación: AMBOS campos son necesarios para funcionalidad completa
+            'riskInformation' => array_filter([
+                'deviceFingerprintId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
             'paymentInformation' => [
                 'customer' => [
                     'customerId' => $paymentInstrumentId
@@ -686,6 +744,32 @@ class CyberSourceService
         
         if ($response['http_code'] >= 200 && $response['http_code'] < 300) {
             $responseData = json_decode($response['body'], true);
+            
+            // ✅ CRÍTICO: Validar que el status no sea DECLINED
+            // CyberSource puede retornar HTTP 201 pero status = DECLINED por Decision Manager
+            $status = $responseData['status'] ?? null;
+            if ($status === 'DECLINED') {
+                Log::warning('⚠️ Authorization DECLINED by Decision Manager', [
+                    'transaction_id' => $responseData['id'] ?? null,
+                    'status' => $status,
+                    'reason' => $responseData['errorInformation']['reason'] ?? 'unknown',
+                    'message' => $responseData['errorInformation']['message'] ?? 'No message',
+                    'risk_score' => $responseData['riskInformation']['score']['result'] ?? null,
+                    'decision' => $responseData['riskInformation']['rules'][0]['decision'] ?? null
+                ]);
+                
+                return [
+                    'success' => false,
+                    'declined' => true,
+                    'error' => 'Transaction declined by Decision Manager',
+                    'error_reason' => $responseData['errorInformation']['reason'] ?? 'DECLINED',
+                    'error_message' => $responseData['errorInformation']['message'] ?? 'Transaction declined',
+                    'risk_score' => $responseData['riskInformation']['score']['result'] ?? null,
+                    'transaction_id' => $responseData['id'] ?? null,
+                    'response' => $response,
+                    'data' => $responseData
+                ];
+            }
             
             return [
                 'success' => true,
@@ -957,13 +1041,17 @@ class CyberSourceService
         $query = parse_url($url, PHP_URL_QUERY);
         $requestTarget = strtolower($method) . ' ' . $path . ($query ? '?' . $query : '');
         
+        // Extract host from base URL (dynamic: test or production)
+        $hostHeader = parse_url($this->baseUrl, PHP_URL_HOST) ?: 'apitest.cybersource.com';
+        
         $digest = $this->hmacGenerator->generateDigest($payload);
         $signature = $this->hmacGenerator->generateSignature(
             $this->merchantId,
             $this->apiSecret,
             $date,
             $requestTarget,
-            $digest
+            $digest,
+            $hostHeader  // ⭐ Pasar host dinámico
         );
         
         $signatureHeader = sprintf(
@@ -971,8 +1059,6 @@ class CyberSourceService
             $this->apiKey,
             $signature
         );
-        
-        $hostHeader = parse_url($this->baseUrl, PHP_URL_HOST) ?: 'apitest.cybersource.com';
         $headers = [
             'Content-Type: application/json',
             'Accept: */*',

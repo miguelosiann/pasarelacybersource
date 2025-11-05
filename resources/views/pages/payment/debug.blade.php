@@ -2,7 +2,12 @@
 
 @section('title', 'Debug - Pasarela de Pagos')
 
+@push('head')
+    @include('components.payment.device-fingerprinting')
+@endpush
+
 @section('content')
+    @include('components.payment.device-fingerprinting-noscript')
     @include('modules.payment.debug-content')
     
     <style>

@@ -34,6 +34,9 @@
 
     <!-- Vite Assets (si es necesario) -->
     <?php echo app('Illuminate\Foundation\Vite')(['resources/css/app.css', 'resources/js/app.js']); ?>
+    
+    <!-- Stack para scripts adicionales en el head (Device Fingerprinting, etc.) -->
+    <?php echo $__env->yieldPushContent('head'); ?>
 </head>
 <body>
     <!-- Navigation -->

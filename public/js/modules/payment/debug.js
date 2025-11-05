@@ -8,6 +8,14 @@ function saveFormData() {
     const formData = new FormData(form);
     const btn = document.querySelector('button[onclick="saveFormData()"]');
     
+    // ✅ CRÍTICO: Agregar el sessionId de ThreatMetrix generado al cargar la página
+    if (window.threatMetrixSessionId) {
+        formData.append('threatmetrix_session_id', window.threatMetrixSessionId);
+        console.log('✅ Adding ThreatMetrix SessionId to form data:', window.threatMetrixSessionId);
+    } else {
+        console.warn('⚠️ window.threatMetrixSessionId not found');
+    }
+    
     // Deshabilitar botón y mostrar loading
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
@@ -127,8 +135,15 @@ function executeStep3() {
             window.deviceCollectionData = {
                 url: data.response.consumerAuthenticationInformation.deviceDataCollectionUrl,
                 accessToken: data.response.consumerAuthenticationInformation.accessToken,
-                referenceId: data.response.consumerAuthenticationInformation.referenceId
+                referenceId: data.response.consumerAuthenticationInformation.referenceId,
+                deviceFingerprintSessionId: data.response.device_fingerprint_session_id  // ⭐ NUEVO
             };
+            
+            // ⭐ Mostrar en consola el sessionId generado
+            if (data.response.device_fingerprint_session_id) {
+                console.log('📱 Device Fingerprint Session ID generated:', data.response.device_fingerprint_session_id);
+                console.log('🔍 Este Session ID se enviará en la autorización (deviceFingerprintId)');
+            }
         }
     })
     .catch(error => {
@@ -153,7 +168,13 @@ function executeStep3_5() {
         return;
     }
 
-    const { url, accessToken, referenceId } = window.deviceCollectionData;
+    const { url, accessToken, referenceId, deviceFingerprintSessionId } = window.deviceCollectionData;
+    
+    // ⭐ Log del sessionId que vamos a usar
+    console.log('📱 Using Device Fingerprint Session ID:', deviceFingerprintSessionId || 'NOT GENERATED');
+    
+    // ✅ Variable para almacenar el Session ID capturado
+    window.capturedDeviceFingerprintSessionId = null;
 
     // Crear contenedor para mostrar info
     const container = document.getElementById('deviceCollectionContainer');
@@ -170,6 +191,7 @@ function executeStep3_5() {
             <div class="card-body">
                 <p class="mb-2"><strong>URL:</strong> <code>${url}</code></p>
                 <p class="mb-2"><strong>Reference ID:</strong> <code>${referenceId}</code></p>
+                <p class="mb-2"><strong>Device Fingerprint Session ID:</strong> <code>${deviceFingerprintSessionId || 'NOT GENERATED'}</code></p>
                 <p class="mb-2"><strong>Access Token:</strong> <code>${accessToken.substring(0, 50)}...</code></p>
                 
                 <div class="progress mt-3" style="height: 25px;">
@@ -203,6 +225,7 @@ function executeStep3_5() {
               target="collectionIframe" 
               action="${url}">
             <input type="hidden" name="JWT" value="${accessToken}">
+            ${deviceFingerprintSessionId ? `<input type="hidden" name="SessionId" value="${deviceFingerprintSessionId}">` : ''}
         </form>
     `;
 
@@ -274,18 +297,36 @@ function executeStep3_5() {
 
 /**
  * Execute Step 4 - Check Enrollment
+ * ✅ CRÍTICO: Usa el ThreatMetrix SessionId (del tag HTML) para Decision Manager
  */
 function executeStep4() {
     const btn = document.getElementById('btnStep4');
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Ejecutando...';
+    
+    // ✅ CRÍTICO: Usar el ThreatMetrix SessionId generado al cargar la página
+    // NO usar el sessionId de CardinalCommerce (capturedDeviceFingerprintSessionId)
+    const requestBody = {};
+    
+    // Prioridad: ThreatMetrix SessionId > Cardinal SessionId
+    if (window.threatMetrixSessionId) {
+        requestBody.device_fingerprint_session_id = window.threatMetrixSessionId;
+        console.log('✅ [DEBUG] Sending ThreatMetrix SessionId (from HTML tag):', window.threatMetrixSessionId);
+    } else if (window.capturedDeviceFingerprintSessionId) {
+        requestBody.device_fingerprint_session_id = window.capturedDeviceFingerprintSessionId;
+        console.warn('⚠️ [DEBUG] Using Cardinal SessionId as fallback:', window.capturedDeviceFingerprintSessionId);
+    } else {
+        console.warn('⚠️ [DEBUG] No Device Fingerprint Session ID available, backend will use referenceId as fallback');
+    }
 
     fetch('/payment/debug/step4', {
         method: 'POST',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-            'Accept': 'application/json'
-        }
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
     })
     .then(response => response.json())
     .then(data => {

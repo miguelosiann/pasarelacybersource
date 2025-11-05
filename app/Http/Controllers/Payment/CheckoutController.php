@@ -59,11 +59,24 @@ class CheckoutController extends Controller
 
         $data = $validator->validated();
         
+        // ✅ CRÍTICO: Usar el ThreatMetrix SessionId generado al cargar la página de checkout
+        $threatMetrixSessionId = session('device_fingerprint_session_id');
+        if ($threatMetrixSessionId) {
+            $data['device_fingerprint_session_id'] = $threatMetrixSessionId;
+            Log::info('✅ Using ThreatMetrix SessionId from session', [
+                'session_id' => $threatMetrixSessionId,
+                'source' => 'checkout page load'
+            ]);
+        } else {
+            Log::warning('⚠️ ThreatMetrix SessionId not found in session - will generate new one in setup3DSSecure');
+        }
+        
         // Log payment attempt
         Log::info('Payment processing started', [
             'user_id' => auth()->id(),
             'amount' => $data['amount'],
-            'currency' => $data['currency']
+            'currency' => $data['currency'],
+            'has_threatmetrix_session_id' => !empty($data['device_fingerprint_session_id'])
         ]);
 
         try {
@@ -90,7 +103,8 @@ class CheckoutController extends Controller
             session([
                 'payment_data' => $data,
                 'payment_instrument_id' => $setupResult['payment_instrument_id'],
-                'threeds_setup_data' => $threeDSSetupResult['data']
+                'threeds_setup_data' => $threeDSSetupResult['data'],
+                'device_fingerprint_session_id' => $threeDSSetupResult['data']['device_fingerprint_session_id'] ?? null  // ⭐ NUEVO
             ]);
             
             // STEP 3.5: Show device data collection page
@@ -98,7 +112,9 @@ class CheckoutController extends Controller
                 'deviceDataCollectionUrl' => $threeDSSetupResult['data']['consumerAuthenticationInformation']['deviceDataCollectionUrl'] ?? '',
                 'accessToken' => $threeDSSetupResult['data']['consumerAuthenticationInformation']['accessToken'] ?? '',
                 'paymentInstrumentId' => $setupResult['payment_instrument_id'],
-                'setupData' => $threeDSSetupResult['data']
+                'setupData' => $threeDSSetupResult['data'],
+                'deviceFingerprintSessionId' => $threeDSSetupResult['data']['device_fingerprint_session_id'] ?? null,  // ⭐ NUEVO
+                'merchantId' => config('cybersource.merchant_id')  // ⭐ Para crear el session_id completo
             ]);
 
         } catch (\Exception $e) {
@@ -129,13 +145,37 @@ class CheckoutController extends Controller
         $paymentInstrumentId = session('payment_instrument_id');
         $setupData = session('threeds_setup_data');
         
+        // ✅ CRÍTICO: Usar ThreatMetrix SessionId (generado al cargar la página) para Decision Manager
+        // El sessionId de CardinalCommerce es diferente y NO existe en ThreatMetrix
+        $threatMetrixSessionId = session('device_fingerprint_session_id');
+        $cardinalSessionId = $request->input('device_fingerprint_session_id');
+        
+        if ($threatMetrixSessionId) {
+            Log::info('✅ Using ThreatMetrix SessionId for Decision Manager', [
+                'threatmetrix_session_id' => $threatMetrixSessionId,
+                'cardinal_session_id' => $cardinalSessionId,
+                'source' => 'session (generated on page load)'
+            ]);
+            // Usar ThreatMetrix SessionId (tiene datos de profiling)
+            $data['device_fingerprint_session_id'] = $threatMetrixSessionId;
+            session(['payment_data' => $data]);
+        } elseif ($cardinalSessionId) {
+            Log::warning('⚠️ ThreatMetrix SessionId not found, using Cardinal SessionId as fallback', [
+                'cardinal_session_id' => $cardinalSessionId
+            ]);
+            $data['device_fingerprint_session_id'] = $cardinalSessionId;
+            session(['payment_data' => $data]);
+        } else {
+            Log::warning('⚠️ No Device Fingerprint Session ID available - will use referenceId as fallback');
+        }
+        
         if (!$data || !$paymentInstrumentId || !$setupData) {
             return redirect()->route('payment.failed')
                 ->with('error', 'Sesión expirada. Por favor intente nuevamente.');
         }
         
         try {
-            // STEP 4: Check Enrollment
+            // STEP 4: Check Enrollment (ahora incluye device_fingerprint_session_id si fue capturado)
             $enrollmentResult = $this->cyberSourceService->checkEnrollment(
                 $paymentInstrumentId,
                 $setupData,
@@ -330,19 +370,31 @@ class CheckoutController extends Controller
             'state' => 'required|string|max:100',
             'postal_code' => 'required|string|max:20',
             'country' => 'required|string|size:2',
+            'threatmetrix_session_id' => 'nullable|string|max:88',  // ✅ ThreatMetrix SessionId
         ]);
 
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
 
+        $validatedData = $validator->validated();
+        
+        // ✅ CRÍTICO: Guardar ThreatMetrix SessionId si fue enviado
+        if (!empty($validatedData['threatmetrix_session_id'])) {
+            session(['threatmetrix_session_id' => $validatedData['threatmetrix_session_id']]);
+            Log::info('✅ ThreatMetrix SessionId saved to session', [
+                'session_id' => $validatedData['threatmetrix_session_id']
+            ]);
+        }
+        
         // Guardar en sesión
-        session(['payment_debug_data' => $validator->validated()]);
+        session(['payment_debug_data' => $validatedData]);
         
         return response()->json([
             'success' => true, 
             'message' => 'Datos guardados en sesión',
-            'data' => $validator->validated()
+            'data' => $validatedData,
+            'threatmetrix_session_id' => $validatedData['threatmetrix_session_id'] ?? null
         ]);
     }
 
@@ -414,9 +466,19 @@ class CheckoutController extends Controller
         // Ejecutar solo PASO 3
         $result = $this->cyberSourceService->debugSetup3DS($paymentInstrumentId, $data);
         
-        // Guardar resultado en sesión
+        // Guardar resultado en sesión (incluyendo device_fingerprint_session_id)
         if ($result['success'] && isset($result['response'])) {
             session(['payment_debug_3ds_setup' => $result['response']]);
+            
+            // ⭐ Guardar sessionId si viene en la respuesta
+            if (!empty($result['response']['device_fingerprint_session_id'])) {
+                $data['device_fingerprint_session_id'] = $result['response']['device_fingerprint_session_id'];
+                session(['payment_debug_data' => $data]);
+                
+                Log::info('📱 DEBUG PASO 3: Device Fingerprint Session ID generated and stored', [
+                    'session_id' => $result['response']['device_fingerprint_session_id']
+                ]);
+            }
         }
         
         return response()->json($result);
@@ -425,7 +487,7 @@ class CheckoutController extends Controller
     /**
      * DEBUG: Execute Step 4 - Check Enrollment
      */
-    public function debugStep4()
+    public function debugStep4(Request $request)
     {
         $data = session('payment_debug_data');
         $paymentInstrumentId = session('payment_debug_payment_instrument_id');
@@ -433,6 +495,23 @@ class CheckoutController extends Controller
         
         if (!$data || !$paymentInstrumentId || !$setupData) {
             return response()->json(['error' => 'Ejecuta los pasos anteriores primero.'], 400);
+        }
+        
+        // ✅ Capturar device fingerprint session ID si viene del frontend
+        $deviceFingerprintSessionId = $request->input('device_fingerprint_session_id');
+        
+        if ($deviceFingerprintSessionId) {
+            Log::info('📱 [DEBUG] Device Fingerprint Session ID received from debug UI', [
+                'session_id' => $deviceFingerprintSessionId
+            ]);
+            $data['device_fingerprint_session_id'] = $deviceFingerprintSessionId;
+            session(['payment_debug_data' => $data]); // Actualizar sesión
+        } else {
+            Log::info('[DEBUG] 📱 Device Fingerprint ID configuration', [
+                'device_fingerprint_id' => $data['device_fingerprint_session_id'] ?? 'NOT IN DATA',
+                'source' => 'from_setup3ds_or_missing',
+                'has_session_id' => !empty($data['device_fingerprint_session_id'])
+            ]);
         }
         
         // Ejecutar solo PASO 4
