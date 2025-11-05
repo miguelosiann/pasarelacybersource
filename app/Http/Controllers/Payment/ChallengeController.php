@@ -157,7 +157,9 @@ class ChallengeController extends Controller
                 'authenticationTransactionId' => $authenticationTransactionId,
                 'paymentInstrumentId' => $paymentInstrumentId,
                 'amount' => $paymentData['amount'],
-                'currency' => $paymentData['currency']
+                'currency' => $paymentData['currency'],
+                'has_device_fingerprint_session_id' => !empty($paymentData['device_fingerprint_session_id']),
+                'device_fingerprint_session_id' => $paymentData['device_fingerprint_session_id'] ?? 'NOT IN SESSION'
             ]);
 
             // STEP 1: Process Challenge Authentication (Validate + Authorization)
@@ -167,25 +169,35 @@ class ChallengeController extends Controller
                 $authenticationTransactionId,
                 $paymentData
             );
+            
+            Log::info('📊 Challenge processing result received', [
+                'success' => $challengeResult['success'] ?? false,
+                'has_payment' => !empty($challengeResult['payment']),
+                'transaction_id' => $challengeResult['transaction_id'] ?? 'N/A'
+            ]);
 
             if (!$challengeResult['success']) {
                 Log::error('❌ Challenge processing failed', [
-                    'error' => $challengeResult['error'],
+                    'error' => $challengeResult['error'] ?? 'Unknown error',
+                    'declined' => $challengeResult['declined'] ?? false,
                     'response' => $challengeResult['response'] ?? null
                 ]);
 
                 return response()->json([
                     'success' => false,
-                    'error' => $challengeResult['error'] ?? 'Error al procesar el challenge'
+                    'error' => $challengeResult['error'] ?? 'Error al procesar el challenge',
+                    'declined' => $challengeResult['declined'] ?? false,
+                    'error_reason' => $challengeResult['error_reason'] ?? null,
+                    'risk_score' => $challengeResult['risk_score'] ?? null
                 ], 400);
             }
 
             // Clear session data
-            session()->forget(['payment_data', 'payment_instrument_id', 'challenge_data']);
+            session()->forget(['payment_data', 'payment_instrument_id', 'challenge_data', 'authentication_transaction_id']);
 
             Log::info('✅ Payment completed successfully after challenge', [
-                'payment_id' => $challengeResult['payment']->id,
-                'flow_results' => $challengeResult['flow_results'] ?? null
+                'payment_id' => $challengeResult['payment']->id ?? 'N/A',
+                'transaction_id' => $challengeResult['transaction_id'] ?? 'N/A'
             ]);
 
             return response()->json([

@@ -534,8 +534,27 @@ class CyberSourceService
                 Log::error('❌ Authorization failed in processChallengeAuthentication', [
                     'http_code' => $authResult['http_code'] ?? 'UNKNOWN',
                     'error' => $authResult['error'] ?? 'UNKNOWN',
+                    'declined' => $authResult['declined'] ?? false,
+                    'error_reason' => $authResult['error_reason'] ?? null,
+                    'risk_score' => $authResult['risk_score'] ?? null,
                     'response_data' => $authResult['data'] ?? null
                 ]);
+                
+                // Si fue DECLINED, retornar con información completa
+                if (isset($authResult['declined']) && $authResult['declined']) {
+                    return [
+                        'success' => false,
+                        'declined' => true,
+                        'error' => $authResult['error'] ?? 'Transaction declined',
+                        'error_reason' => $authResult['error_reason'] ?? 'DECLINED',
+                        'error_message' => $authResult['error_message'] ?? 'Transaction declined by Decision Manager',
+                        'risk_score' => $authResult['risk_score'] ?? null,
+                        'transaction_id' => $authResult['transaction_id'] ?? null,
+                        'payment' => null,
+                        'flow_results' => $flowResults
+                    ];
+                }
+                
                 return $this->errorResponse(
                     'Authorization failed after challenge: ' . ($authResult['error'] ?? 'HTTP ' . ($authResult['http_code'] ?? 'UNKNOWN')),
                     array_merge($authResult, ['flow_results' => $flowResults])
@@ -1035,6 +1054,14 @@ class CyberSourceService
                 'http_code' => $response['http_code'],
                 'response' => $responseData
             ]);
+            
+            return [
+                'success' => false,
+                'error' => 'HTTP ' . $response['http_code'],
+                'http_code' => $response['http_code'],
+                'response' => $response,
+                'payment' => null
+            ];
         }
         
         // Construir authResult y threeDSResult para guardar Payment
@@ -1064,7 +1091,7 @@ class CyberSourceService
         }
         
         return [
-            'success' => $success,
+            'success' => $isAuthorized,
             'transaction_id' => $responseData['id'] ?? null,
             'authorization_code' => $responseData['status'] ?? null,
             'processor_response' => $responseData['processorInformation']['responseCode'] ?? null,
