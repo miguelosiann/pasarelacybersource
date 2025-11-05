@@ -678,17 +678,39 @@ function displayStepResult(containerId, data, nextButtonId) {
         `;
     }
     
+    // ⚠️ IMPORTANTE: Mostrar si fue rechazado por Decision Manager
+    if (data.declined === true) {
+        html += `
+            <div class="alert alert-warning mt-3">
+                <h6 class="mb-2">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ⚠️ Transacción Rechazada por Decision Manager
+                </h6>
+                <p class="mb-2"><strong>Motivo:</strong> ${data.error_reason || 'UNKNOWN'}</p>
+                <p class="mb-2"><strong>Mensaje:</strong> ${data.error_message || 'UNKNOWN'}</p>
+                ${data.risk_score ? `<p class="mb-2"><strong>Risk Score:</strong> <span class="badge bg-danger">${data.risk_score}</span></p>` : ''}
+                <p class="mb-0 text-muted small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    El sistema Decision Manager de CyberSource analizó la transacción y la rechazó según las reglas configuradas.
+                </p>
+            </div>
+        `;
+    }
+    
     // Si el pago fue guardado en la BD, mostrar info
     if (data.saved_to_db && data.payment_id) {
+        const paymentStatus = data.declined ? 'failed' : 'completed';
+        const paymentBadge = data.declined ? 'bg-danger' : 'bg-success';
         html += `
-            <div class="alert alert-success mt-3">
+            <div class="alert ${data.declined ? 'alert-warning' : 'alert-success'} mt-3">
                 <h6 class="mb-2">
                     <i class="fas fa-database me-2"></i>
                     💾 Pago Guardado en Base de Datos
                 </h6>
                 <p class="mb-0">
                     <strong>Payment ID:</strong> <code>${data.payment_id}</code><br>
-                    <small>El pago ha sido registrado exitosamente en la tabla <code>payments</code></small>
+                    <strong>Status:</strong> <span class="badge ${paymentBadge}">${paymentStatus}</span><br>
+                    <small>El pago ha sido registrado en la tabla <code>payments</code> ${data.declined ? 'como rechazado' : 'exitosamente'}</small>
                 </p>
             </div>
         `;

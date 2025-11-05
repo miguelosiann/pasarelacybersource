@@ -284,7 +284,9 @@ class CheckoutController extends Controller
         try {
             Log::info('🔄 Processing Challenge Callback', [
                 'payment_instrument_id' => $paymentInstrumentId,
-                'authentication_transaction_id' => $authenticationTransactionId
+                'authentication_transaction_id' => $authenticationTransactionId,
+                'has_device_fingerprint_session_id' => !empty($data['device_fingerprint_session_id']),
+                'device_fingerprint_session_id' => $data['device_fingerprint_session_id'] ?? 'NOT IN SESSION DATA'
             ]);
             
             // STEP 1: Validate Challenge Authentication
@@ -332,10 +334,39 @@ class CheckoutController extends Controller
                 
                 return redirect()->route('payment.success', ['payment' => $challengeResult['payment']->id])
                     ->with('success', 'Pago procesado exitosamente después del challenge');
-            } else {
-                return redirect()->route('payment.failed')
-                    ->with('error', $challengeResult['error'] ?? 'Error al procesar el pago después del challenge');
             }
+            
+            // Authorization failed or declined
+            if (isset($challengeResult['declined']) && $challengeResult['declined']) {
+                $errorMessage = $challengeResult['error_message'] ?? 'La transacción fue rechazada';
+                $errorReason = $challengeResult['error'] ?? 'TRANSACTION_DECLINED';
+                
+                Log::warning('💳 Payment declined after challenge', [
+                    'reason' => $errorReason,
+                    'message' => $errorMessage,
+                    'risk_score' => $challengeResult['risk_score'] ?? null
+                ]);
+                
+                // Clear session data
+                session()->forget([
+                    'payment_data',
+                    'payment_instrument_id',
+                    'challenge_data',
+                    'authentication_transaction_id'
+                ]);
+                
+                return redirect()->route('payment.failed')
+                    ->with('error', $errorMessage)
+                    ->with('error_details', [
+                        'reason' => $errorReason,
+                        'risk_score' => $challengeResult['risk_score'] ?? null,
+                        'transaction_id' => $challengeResult['transaction_id'] ?? null
+                    ]);
+            }
+            
+            // General error
+            return redirect()->route('payment.failed')
+                ->with('error', $challengeResult['error'] ?? 'Error al procesar el pago después del challenge');
             
         } catch (\Exception $e) {
             Log::error('Challenge callback exception', [

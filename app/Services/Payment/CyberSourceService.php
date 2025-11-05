@@ -936,6 +936,29 @@ class CyberSourceService
                     })
                 ]
             ],
+            // ✅ AGREGADO: Merchant Defined Data (MDD5 y MDD6)
+            'merchantDefinedInformation' => [
+                [
+                    'key' => '5',
+                    'value' => config('cybersource.merchant_defined_data.mdd5_business_name')
+                ],
+                [
+                    'key' => '6',
+                    'value' => config('cybersource.merchant_defined_data.mdd6_sales_channel')
+                ]
+            ],
+            // ✅ CRÍTICO: Device Fingerprint para 3DS correlation (Cardinal/EMVCo)
+            'deviceInformation' => array_filter([
+                'fingerprintSessionId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
+            // ✅ CRÍTICO: Device Fingerprint para Decision Manager Dashboard
+            'riskInformation' => array_filter([
+                'deviceFingerprintId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
             'paymentInformation' => [
                 'customer' => [
                     'customerId' => $paymentInstrumentId
@@ -972,15 +995,41 @@ class CyberSourceService
         ]);
         
         $response = $this->makeRequest('POST', $url, $payload);
-        $success = $response['http_code'] >= 200 && $response['http_code'] < 300;
+        $httpSuccess = $response['http_code'] >= 200 && $response['http_code'] < 300;
         $responseData = json_decode($response['body'], true);
         
-        if ($success) {
+        // ⚠️ CRÍTICO: Verificar el status de CyberSource, no solo el HTTP code
+        $transactionStatus = $responseData['status'] ?? '';
+        $isAuthorized = in_array($transactionStatus, ['AUTHORIZED', 'AUTHORIZED_PENDING_REVIEW']);
+        $errorInfo = $responseData['errorInformation'] ?? [];
+        $riskInfo = $responseData['riskInformation'] ?? [];
+        
+        if ($httpSuccess && $isAuthorized) {
             Log::info('✅ PASO 5.5B: Authorization Success', [
                 'transaction_id' => $responseData['id'] ?? 'N/A',
-                'status' => $responseData['status'] ?? 'N/A',
+                'status' => $transactionStatus,
                 'eciRaw' => $responseData['consumerAuthenticationInformation']['eciRaw'] ?? 'N/A'
             ]);
+        } elseif ($httpSuccess && !$isAuthorized) {
+            Log::warning('⚠️ PASO 5.5B: HTTP 201 but transaction DECLINED', [
+                'status' => $transactionStatus,
+                'error_reason' => $errorInfo['reason'] ?? 'UNKNOWN',
+                'error_message' => $errorInfo['message'] ?? 'UNKNOWN',
+                'risk_score' => $riskInfo['score']['result'] ?? 'N/A',
+                'risk_decision' => $riskInfo['profile']['earlyDecision'] ?? 'N/A'
+            ]);
+            
+            // Retornar como declined
+            return [
+                'success' => false,
+                'declined' => true,
+                'error' => 'Transaction declined by Decision Manager after challenge',
+                'error_reason' => $errorInfo['reason'] ?? 'DECLINED',
+                'error_message' => $errorInfo['message'] ?? 'Transaction declined',
+                'risk_score' => $riskInfo['score']['result'] ?? null,
+                'transaction_id' => $responseData['id'] ?? null,
+                'payment' => null
+            ];
         } else {
             Log::error('❌ PASO 5.5B: Authorization Failed', [
                 'http_code' => $response['http_code'],
@@ -990,7 +1039,7 @@ class CyberSourceService
         
         // Construir authResult y threeDSResult para guardar Payment
         $authResult = [
-            'success' => $success,
+            'success' => $isAuthorized,
             'transaction_id' => $responseData['id'] ?? null,
             'authorization_code' => $responseData['status'] ?? null,
             'processor_response' => $responseData['processorInformation']['responseCode'] ?? null,
@@ -998,14 +1047,14 @@ class CyberSourceService
         ];
         
         $threeDSData = [
-            'success' => $success,
+            'success' => $isAuthorized,
             'flow_type' => 'challenge',
             'enrollment_data' => $validationResponse  // Usar validation response como enrollment data
         ];
         
         // Guardar Payment cuando es exitoso
         $payment = null;
-        if ($success) {
+        if ($isAuthorized) {
             try {
                 $payment = $this->savePayment($data, $authResult, $threeDSData);
                 Log::info('💾 PASO 5.5B: Payment saved to database', ['payment_id' => $payment->id]);
@@ -1523,6 +1572,29 @@ class CyberSourceService
                     })
                 ]
             ],
+            // ✅ AGREGADO: Merchant Defined Data (MDD5 y MDD6)
+            'merchantDefinedInformation' => [
+                [
+                    'key' => '5',
+                    'value' => config('cybersource.merchant_defined_data.mdd5_business_name')
+                ],
+                [
+                    'key' => '6',
+                    'value' => config('cybersource.merchant_defined_data.mdd6_sales_channel')
+                ]
+            ],
+            // ✅ CRÍTICO: Device Fingerprint para 3DS correlation (Cardinal/EMVCo)
+            'deviceInformation' => array_filter([
+                'fingerprintSessionId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
+            // ✅ CRÍTICO: Device Fingerprint para Decision Manager Dashboard
+            'riskInformation' => array_filter([
+                'deviceFingerprintId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
             'paymentInformation' => [
                 'customer' => [
                     'customerId' => $paymentInstrumentId
@@ -1561,12 +1633,42 @@ class CyberSourceService
         
         $response = $this->makeRequest('POST', $url, $payload);
         
-        $success = $response['http_code'] >= 200 && $response['http_code'] < 300;
+        $httpSuccess = $response['http_code'] >= 200 && $response['http_code'] < 300;
         $responseData = json_decode($response['body'], true);
+        
+        // ⚠️ CRÍTICO: Verificar el status de CyberSource, no solo el HTTP code
+        $transactionStatus = $responseData['status'] ?? '';
+        $isDeclined = ($transactionStatus === 'DECLINED');
+        
+        if ($httpSuccess && $isDeclined) {
+            Log::warning('⚠️ DEBUG PASO 5.5B: Authorization DECLINED by Decision Manager', [
+                'transaction_id' => $responseData['id'] ?? null,
+                'status' => $transactionStatus,
+                'reason' => $responseData['errorInformation']['reason'] ?? 'unknown',
+                'message' => $responseData['errorInformation']['message'] ?? 'No message',
+                'risk_score' => $responseData['riskInformation']['score']['result'] ?? null
+            ]);
+            
+            return [
+                'step' => 'PASO 5.5B: Authorization After Validation (Challenge Y,C)',
+                'description' => 'Autorización usando los datos validados del PASO 5.5A.',
+                'url' => $url,
+                'http_code' => $response['http_code'],
+                'request' => json_decode($payload, true),
+                'response' => $responseData,
+                'success' => false,
+                'declined' => true,
+                'error_reason' => $responseData['errorInformation']['reason'] ?? 'DECLINED',
+                'error_message' => $responseData['errorInformation']['message'] ?? 'Transaction declined',
+                'risk_score' => $responseData['riskInformation']['score']['result'] ?? null,
+                'payment_id' => null,
+                'saved_to_db' => false
+            ];
+        }
         
         // Si fue exitoso, guardar en la base de datos
         $payment = null;
-        if ($success && $responseData) {
+        if ($httpSuccess && !$isDeclined && $responseData) {
             try {
                 $payment = \App\Models\Payment::create([
                     'user_id' => auth()->id(),
@@ -1606,7 +1708,8 @@ class CyberSourceService
             'http_code' => $response['http_code'],
             'request' => json_decode($payload, true),
             'response' => $responseData,
-            'success' => $success,
+            'success' => $httpSuccess && !$isDeclined,
+            'declined' => $isDeclined,
             'payment_id' => $payment ? $payment->id : null,
             'saved_to_db' => $payment !== null
         ];
@@ -1640,6 +1743,29 @@ class CyberSourceService
                     })
                 ]
             ],
+            // ✅ AGREGADO: Merchant Defined Data (MDD5 y MDD6)
+            'merchantDefinedInformation' => [
+                [
+                    'key' => '5',
+                    'value' => config('cybersource.merchant_defined_data.mdd5_business_name')
+                ],
+                [
+                    'key' => '6',
+                    'value' => config('cybersource.merchant_defined_data.mdd6_sales_channel')
+                ]
+            ],
+            // ✅ CRÍTICO: Device Fingerprint para 3DS correlation (Cardinal/EMVCo)
+            'deviceInformation' => array_filter([
+                'fingerprintSessionId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
+            // ✅ CRÍTICO: Device Fingerprint para Decision Manager Dashboard
+            'riskInformation' => array_filter([
+                'deviceFingerprintId' => $data['device_fingerprint_session_id'] ?? null
+            ], function($value) {
+                return $value !== null && $value !== '';
+            }),
             'paymentInformation' => [
                 'customer' => [
                     'customerId' => $paymentInstrumentId
@@ -1692,12 +1818,42 @@ class CyberSourceService
         
         $response = $this->makeRequest('POST', $url, $payload);
         
-        $success = $response['http_code'] >= 200 && $response['http_code'] < 300;
+        $httpSuccess = $response['http_code'] >= 200 && $response['http_code'] < 300;
         $responseData = json_decode($response['body'], true);
+        
+        // ⚠️ CRÍTICO: Verificar el status de CyberSource, no solo el HTTP code
+        $transactionStatus = $responseData['status'] ?? '';
+        $isDeclined = ($transactionStatus === 'DECLINED');
+        
+        if ($httpSuccess && $isDeclined) {
+            Log::warning('⚠️ DEBUG PASO 5: Authorization DECLINED by Decision Manager', [
+                'transaction_id' => $responseData['id'] ?? null,
+                'status' => $transactionStatus,
+                'reason' => $responseData['errorInformation']['reason'] ?? 'unknown',
+                'message' => $responseData['errorInformation']['message'] ?? 'No message',
+                'risk_score' => $responseData['riskInformation']['score']['result'] ?? null
+            ]);
+            
+            return [
+                'step' => 'PASO 5: Authorization (Frictionless Y,Y)',
+                'description' => 'Autorización final con los datos de autenticación 3DS.',
+                'url' => $url,
+                'http_code' => $response['http_code'],
+                'request' => json_decode($payload, true),
+                'response' => $responseData,
+                'success' => false,
+                'declined' => true,
+                'error_reason' => $responseData['errorInformation']['reason'] ?? 'DECLINED',
+                'error_message' => $responseData['errorInformation']['message'] ?? 'Transaction declined',
+                'risk_score' => $responseData['riskInformation']['score']['result'] ?? null,
+                'payment_id' => null,
+                'saved_to_db' => false
+            ];
+        }
         
         // Si fue exitoso, guardar en la base de datos
         $payment = null;
-        if ($success && $responseData) {
+        if ($httpSuccess && !$isDeclined && $responseData) {
             try {
                 $payment = \App\Models\Payment::create([
                     'user_id' => auth()->id(),
@@ -1737,7 +1893,8 @@ class CyberSourceService
             'http_code' => $response['http_code'],
             'request' => json_decode($payload, true),
             'response' => $responseData,
-            'success' => $success,
+            'success' => $httpSuccess && !$isDeclined,
+            'declined' => $isDeclined,
             'payment_id' => $payment ? $payment->id : null,
             'saved_to_db' => $payment !== null
         ];
